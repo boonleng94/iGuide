@@ -13,7 +13,7 @@ class TTSController(context: Context, locale: Locale, callback: TTSListener) {
     init {
         talk = TextToSpeech(context, TextToSpeech.OnInitListener { status ->
             if (status == TextToSpeech.SUCCESS) {
-                val result = talk.setLanguage(Locale.US)
+                val result = talk.setLanguage(locale)
                 if (result == TextToSpeech.LANG_MISSING_DATA || result == TextToSpeech.LANG_NOT_SUPPORTED) {
                     Log.e("TTS", "This Language is not supported")
                 }

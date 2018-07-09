@@ -10,7 +10,6 @@ import android.speech.SpeechRecognizer
 import android.view.Menu
 import android.widget.ImageButton
 import android.widget.TextView
-import com.estimote.iguide.R
 
 class STTTest : Activity() {
     private lateinit var txtSpeechInput: TextView

@@ -9,8 +9,6 @@ import android.support.v7.app.AppCompatActivity
 import android.widget.Toast
 
 import android.speech.tts.TextToSpeech
-import com.estimote.iguide.R
-
 import java.util.Locale
 
 import com.estimote.indoorsdk.IndoorLocationManagerBuilder
@@ -52,7 +50,7 @@ class MainIndoorActivity : AppCompatActivity(), TTSListener {
         // Declare notification that will be displayed in user's notification bar.
         // You can modify it as you want/
         notification = Notification.Builder(this)
-                .setSmallIcon(R.drawable.beacon_gray)
+                .setSmallIcon(R.drawable.iguide_logo)
                 .setContentTitle("Estimote Inc. \u00AE")
                 .setContentText("Indoor location is running...")
                 .setPriority(Notification.PRIORITY_HIGH)
