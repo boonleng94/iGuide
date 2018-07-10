@@ -71,7 +71,7 @@ class SplashActivity : AppCompatActivity(), TTSListener {
 
         //continue using TTS/calling methods and other shits
         i.speakOut(resources.getString(R.string.welcome))
-        startActivity(Intent(this, MainCompassActivity::class.java))
+        startActivity(Intent(this, MainProximityActivity::class.java))
     }
 
     override fun onFailure(tts: TextToSpeech) {

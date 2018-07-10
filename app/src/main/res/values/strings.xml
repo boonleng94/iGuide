@@ -1,7 +1,14 @@
 <resources>
     <string name="app_name">iGuide</string>
-    <string name="app_desc">Smart navigation for the visually impaired.</string>
-    <string name="welcome">Welcome to EyeGuide.</string>
+    <string name="app_desc">Smart navigation for the visually impaired</string>
+    <string name="welcome">Welcome to EyeGuide</string>
+    <string name="iguide_logo">iGuide Logo</string>
+    <string name="audio_repeat">Shake to repeat audio</string>
+    <string name="change_dest">Double tap to change destination</string>
+    <string name="move_forward">Continue moving forward</string>
+    <string name="enroute">You are enroute to:</string>
+    <string name="dest"><u>Destination 1</u></string>
+    <string name="passby">You have just walked pass: XXX</string>
 
     <!-- STT TEST -->
     <string name="action_settings">Settings</string>

@@ -34,12 +34,8 @@ class Compass(context: Context): SensorEventListener {
         sensorManager.unregisterListener(this)
     }
 
-    fun setAzimuthFix(fix: Float) {
-        azimuthFix = fix
-    }
-
     fun resetAzimuthFix() {
-        setAzimuthFix(0f)
+        azimuthFix = 0f
     }
 
     override fun onSensorChanged(event: SensorEvent) {
@@ -53,7 +49,6 @@ class Compass(context: Context): SensorEventListener {
 
                 // mGravity = event.values;
 
-                // Log.e(TAG, Float.toString(mGravity[0]));
             }
 
             if (event.sensor.type == Sensor.TYPE_MAGNETIC_FIELD) {
@@ -62,21 +57,15 @@ class Compass(context: Context): SensorEventListener {
                 mGeomagnetic[0] = alpha * mGeomagnetic[0] + (1 - alpha) * event.values[0]
                 mGeomagnetic[1] = alpha * mGeomagnetic[1] + (1 - alpha) * event.values[1]
                 mGeomagnetic[2] = alpha * mGeomagnetic[2] + (1 - alpha) * event.values[2]
-                // Log.e(TAG, Float.toString(event.values[0]));
-
             }
 
             val success = SensorManager.getRotationMatrix(R, I, mGravity, mGeomagnetic)
             if (success) {
                 val orientation = FloatArray(3)
                 SensorManager.getOrientation(R, orientation)
-                // Log.d(TAG, "azimuth (rad): " + azimuth);
                 azimuth = Math.toDegrees(orientation[0].toDouble()).toFloat() // orientation
                 azimuth = (azimuth + azimuthFix + 360f) % 360
-                // Log.d(TAG, "azimuth (deg): " + azimuth);
-                if (compassListener != null) {
-                    compassListener.onNewAzimuth(azimuth)
-                }
+                compassListener.onNewAzimuth(azimuth)
             }
         }
     }

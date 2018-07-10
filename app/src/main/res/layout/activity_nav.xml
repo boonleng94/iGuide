@@ -1,0 +1,129 @@
+<android.support.constraint.ConstraintLayout
+    xmlns:android="http://schemas.android.com/apk/res/android"
+    xmlns:app="http://schemas.android.com/apk/res-auto"
+    android:layout_width="match_parent"
+    android:layout_height="match_parent"
+    android:background="@color/background_white"
+    android:orientation="horizontal">
+
+    <android.support.constraint.Guideline
+        android:id="@+id/left_guideline"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:orientation="vertical"
+        app:layout_constraintGuide_percent="0.2" />
+
+    <android.support.constraint.Guideline
+        android:id="@+id/right_guideline"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:orientation="vertical"
+        app:layout_constraintGuide_percent="0.8" />
+
+    <android.support.constraint.Guideline
+        android:id="@+id/top_guideline"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:orientation="horizontal"
+        app:layout_constraintGuide_percent="0.1" />
+
+    <android.support.constraint.Guideline
+        android:id="@+id/bottom_guideline"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:orientation="horizontal"
+        app:layout_constraintGuide_percent="0.75" />
+
+    <android.support.constraint.Guideline
+        android:id="@+id/left_guideline2"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:orientation="vertical"
+        app:layout_constraintGuide_percent="0.1" />
+
+    <android.support.constraint.Guideline
+        android:id="@+id/right_guideline2"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:orientation="vertical"
+        app:layout_constraintGuide_percent="0.9" />
+
+    <TextView
+        android:id="@+id/destination_placeholder"
+        android:layout_width="0dp"
+        android:layout_height="wrap_content"
+        android:gravity="center_horizontal"
+        app:layout_constraintLeft_toLeftOf="@+id/left_guideline2"
+        app:layout_constraintRight_toLeftOf="@+id/right_guideline2"
+        app:layout_constraintTop_toBottomOf="@+id/top_guideline"
+        app:layout_constraintBottom_toTopOf="@+id/top_guideline"
+        android:text="@string/enroute"
+        android:textColor="@color/black"
+        android:textSize="30dp"
+        android:textStyle="bold"
+        android:fontFamily="@font/actor"/>
+
+    <TextView
+        android:id="@+id/tv_destination"
+        android:layout_width="0dp"
+        android:layout_height="wrap_content"
+        android:gravity="center_horizontal"
+        app:layout_constraintLeft_toLeftOf="@+id/left_guideline2"
+        app:layout_constraintRight_toLeftOf="@+id/right_guideline2"
+        app:layout_constraintTop_toBottomOf="@+id/destination_placeholder"
+        android:text="@string/dest"
+        android:textColor="@color/black"
+        android:textSize="30dp"
+        android:textStyle="bold"
+        android:fontFamily="@font/actor"/>
+
+    <ImageView
+        android:id="@+id/iv_direction"
+        android:layout_width="0dp"
+        android:layout_height="wrap_content"
+        android:contentDescription="@string/move_forward"
+        app:layout_constraintBottom_toTopOf="@+id/bottom_guideline"
+        app:layout_constraintHorizontal_bias="0.0"
+        app:layout_constraintLeft_toLeftOf="@+id/left_guideline"
+        app:layout_constraintRight_toLeftOf="@+id/right_guideline"
+        app:layout_constraintTop_toBottomOf="@+id/tv_destination"
+        app:layout_constraintVertical_bias="0.507"
+        app:srcCompat="@drawable/move_forward" />
+
+    <TextView
+        android:id="@+id/passby_alert_placeholder"
+        android:layout_width="0dp"
+        android:layout_height="40dp"
+        android:gravity="center_horizontal"
+        android:visibility="invisible"
+        app:layout_constraintLeft_toLeftOf="@+id/left_guideline2"
+        app:layout_constraintRight_toLeftOf="@+id/right_guideline2"
+        app:layout_constraintTop_toBottomOf="@id/bottom_guideline"
+        android:text="@string/passby"
+        android:textColor="@color/black"
+        android:textSize="20dp"
+        android:textStyle="italic"
+        android:fontFamily="@font/actor"/>
+
+    <ImageView
+        android:id="@+id/audio_repeat_placeholder"
+        android:layout_width="0dp"
+        android:layout_height="40dp"
+        app:layout_constraintLeft_toLeftOf="@+id/left_guideline2"
+        app:layout_constraintRight_toLeftOf="@+id/right_guideline2"
+        app:layout_constraintTop_toBottomOf="@id/passby_alert_placeholder"
+        android:contentDescription="@string/audio_repeat"
+        app:srcCompat="@drawable/audio_repeat" />
+
+    <ImageView
+        android:id="@+id/change_dest_placeholder"
+        android:layout_width="0dp"
+        android:layout_height="44dp"
+        android:visibility="invisible"
+        app:layout_constraintLeft_toLeftOf="@+id/left_guideline2"
+        app:layout_constraintRight_toLeftOf="@+id/right_guideline2"
+        app:layout_constraintTop_toBottomOf="@id/audio_repeat_placeholder"
+        app:layout_constraintBottom_toBottomOf="parent"
+        android:contentDescription="@string/change_dest"
+        app:srcCompat="@drawable/change_dest" />
+</android.support.constraint.ConstraintLayout>

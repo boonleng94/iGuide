@@ -30,7 +30,7 @@ dependencies {
 
     implementation"org.jetbrains.kotlin:kotlin-stdlib-jdk7:$kotlin_version"
 
-    implementation 'com.estimote:indoorsdk:2.5.1'
+    implementation 'com.estimote:indoorsdk:2.5.2'
     implementation 'com.estimote:proximity-sdk:0.6.2'
     implementation 'com.estimote:mustard:0.2.1'
 
