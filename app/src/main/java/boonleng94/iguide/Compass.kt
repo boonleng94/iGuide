@@ -10,8 +10,8 @@ class Compass(context: Context): SensorEventListener {
     lateinit var compassListener: CompassListener
 
     private val sensorManager = context.getSystemService(Context.SENSOR_SERVICE) as SensorManager
-    private val gsensor: Sensor
-    private val msensor: Sensor
+    private val accSensor: Sensor
+    private val magnSensor: Sensor
     private val mGravity = FloatArray(3)
     private val mGeomagnetic = FloatArray(3)
     private val R = FloatArray(9)
@@ -21,13 +21,13 @@ class Compass(context: Context): SensorEventListener {
     private var azimuthFix: Float = 0.toFloat()
 
     init {
-        gsensor = sensorManager.getDefaultSensor(Sensor.TYPE_ACCELEROMETER)
-        msensor = sensorManager.getDefaultSensor(Sensor.TYPE_MAGNETIC_FIELD)
+        accSensor = sensorManager.getDefaultSensor(Sensor.TYPE_ACCELEROMETER)
+        magnSensor = sensorManager.getDefaultSensor(Sensor.TYPE_MAGNETIC_FIELD)
     }
 
     fun start() {
-        sensorManager.registerListener(this, gsensor, SensorManager.SENSOR_DELAY_GAME)
-        sensorManager.registerListener(this, msensor, SensorManager.SENSOR_DELAY_GAME)
+        sensorManager.registerListener(this, accSensor, SensorManager.SENSOR_DELAY_GAME)
+        sensorManager.registerListener(this, magnSensor, SensorManager.SENSOR_DELAY_GAME)
     }
 
     fun stop() {

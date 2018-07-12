@@ -7,7 +7,6 @@ import com.estimote.proximity_sdk.proximity.ProximityObserver
 import com.estimote.proximity_sdk.proximity.ProximityObserverBuilder
 
 class MainProximityActivity : AppCompatActivity() {
-
     lateinit var observationHandler: ProximityObserver.Handler
 
     override fun onCreate(savedInstanceState: Bundle?) {
