@@ -1,6 +1,7 @@
 package boonleng94.iguide
 
 import android.os.Bundle
+import android.support.v4.view.GestureDetectorCompat
 import android.support.v7.app.AppCompatActivity
 import android.util.Log
 import android.view.GestureDetector
@@ -19,39 +20,44 @@ class MainCompassActivity: AppCompatActivity(), GestureDetector.OnGestureListene
 
     private var currentAzimuth: Float = 0.toFloat()
 
+    private lateinit var gDetector: GestureDetectorCompat
+
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
         setContentView(R.layout.activity_compass)
         arrowView = findViewById(R.id.main_image_hands)
         setupCompass()
         setupShakeDetector()
+        setupDoubleTapGesture()
     }
 
     override fun onStart() {
-        Log.d(TAG, "start compass")
         compass.start()
+        shakeDetector.start()
         super.onStart()
     }
 
     override fun onPause() {
         compass.stop()
+        shakeDetector.stop()
         super.onPause()
     }
 
     override fun onResume() {
         compass.start()
+        shakeDetector.start()
         super.onResume()
     }
 
     override fun onStop() {
         compass.stop()
+        shakeDetector.stop()
         super.onStop()
-        Log.d(TAG, "stop compass")
     }
 
     override fun onDestroy() {
-        Log.d(TAG, "stop compass")
         compass.stop()
+        shakeDetector.stop()
         super.onDestroy()
     }
 
@@ -66,11 +72,11 @@ class MainCompassActivity: AppCompatActivity(), GestureDetector.OnGestureListene
     }
 
     private fun adjustArrow(azimuth: Float) {
-        Log.d(TAG, "will set rotation from $currentAzimuth to $azimuth")
+        //Log.d(TAG, "will set rotation from $currentAzimuth to $azimuth")
 
-        val an = RotateAnimation(-currentAzimuth, -azimuth, Animation.RELATIVE_TO_SELF, 0.5f, Animation.RELATIVE_TO_SELF, 0.5f)
+        val an = RotateAnimation(currentAzimuth, azimuth, Animation.RELATIVE_TO_SELF, 0.5f, Animation.RELATIVE_TO_SELF, 0.5f)
         currentAzimuth = azimuth
-        an.duration = 500
+        an.duration = 1000
         an.repeatCount = 0
         an.fillAfter = true
 
@@ -82,12 +88,26 @@ class MainCompassActivity: AppCompatActivity(), GestureDetector.OnGestureListene
         val sl = object : ShakeListener {
             override fun onShake(count: Int) {
                 //Do shake event here
+                if (count > 2) {
+                    Log.d("SHAKE", "Shake detected: " + count)
+                }
             }
         }
         shakeDetector.shakeListener = sl
     }
 
+    private fun setupDoubleTapGesture() {
+        gDetector = GestureDetectorCompat(this, this)
+        gDetector.setOnDoubleTapListener(this)
+    }
+
+    override fun onTouchEvent(event: MotionEvent): Boolean {
+        gDetector.onTouchEvent(event)
+        return super.onTouchEvent(event)
+    }
+
     override fun onDoubleTap(event: MotionEvent): Boolean {
+        Log.d("DOUBLE TAP", "DOUBLE TAP DETECTED")
         return true
     }
 

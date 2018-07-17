@@ -25,9 +25,9 @@ class ShakeDetector(context: Context) : SensorEventListener {
          * from the Google Play Store and run it to see how
          *  many G's it takes to register a shake
          */
-        private val SHAKE_THRESHOLD_GRAVITY = 2.7f
+        private val SHAKE_THRESHOLD_GRAVITY = 1.7f
         private val SHAKE_SLOP_TIME_MS = 500
-        private val SHAKE_COUNT_RESET_TIME_MS = 3000
+        private val SHAKE_COUNT_RESET_TIME_MS = 2000
     }
 
     init {
@@ -43,7 +43,6 @@ class ShakeDetector(context: Context) : SensorEventListener {
     }
 
     override fun onSensorChanged(event: SensorEvent) {
-
         if (shakeListener != null) {
             val x = event.values[0]
             val y = event.values[1]
