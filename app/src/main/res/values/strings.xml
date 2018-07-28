@@ -7,8 +7,11 @@
     <string name="change_dest">Double tap to change destination</string>
     <string name="move_forward">Continue moving forward</string>
     <string name="enroute">You are enroute to:</string>
+    <string name="astray">You are moving astray from:</string>
     <string name="dest"><u>Destination 1</u></string>
     <string name="passby">You have just walked pass: XXX</string>
+    <string name="where_to_go">Where would you like to go?</string>
+
 
     <!-- STT TEST -->
     <string name="action_settings">Settings</string>

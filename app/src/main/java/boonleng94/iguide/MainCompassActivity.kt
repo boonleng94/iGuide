@@ -1,34 +1,49 @@
 package boonleng94.iguide
 
+import android.content.Intent
+import android.content.res.Resources
 import android.os.Bundle
+import android.speech.tts.TextToSpeech
 import android.support.v4.view.GestureDetectorCompat
 import android.support.v7.app.AppCompatActivity
 import android.util.Log
 import android.view.GestureDetector
 import android.view.MotionEvent
-import android.view.animation.Animation
-import android.view.animation.RotateAnimation
 import android.widget.ImageView
+import android.widget.TextView
+import java.util.*
+import kotlin.math.absoluteValue
 
-class MainCompassActivity: AppCompatActivity(), GestureDetector.OnGestureListener, GestureDetector.OnDoubleTapListener {
+class MainCompassActivity: AppCompatActivity(), GestureDetector.OnGestureListener, GestureDetector.OnDoubleTapListener, TTSListener {
     private val TAG = "CompassActivity"
+    private lateinit var i: TTSController
 
     private lateinit var compass: Compass
-    private lateinit var arrowView: ImageView
+
+    private lateinit var directionIv: ImageView
+    private lateinit var destTv: TextView
 
     private lateinit var shakeDetector: ShakeDetector
+    private lateinit var gDetector: GestureDetectorCompat
 
     private var currentAzimuth: Float = 0.toFloat()
+    private var tempAzimuth: Float = 0.toFloat()
+    private var azimuthCount: Int = 0
+    private var targetAzimuth: Float = 270.toFloat()
+    private var destination: String = "None"
 
-    private lateinit var gDetector: GestureDetectorCompat
+    private var originalAzimuth: Float = 0.toFloat()
+    private var firstSpeech: Boolean = true
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
-        setContentView(R.layout.activity_compass)
-        arrowView = findViewById(R.id.main_image_hands)
+        setContentView(R.layout.activity_nav)
+        directionIv = findViewById(R.id.iv_direction)
+        destTv = findViewById(R.id.destination_placeholder)
         setupCompass()
         setupShakeDetector()
         setupDoubleTapGesture()
+        i = TTSController(this.applicationContext, Locale.US, this)
     }
 
     override fun onStart() {
@@ -65,22 +80,61 @@ class MainCompassActivity: AppCompatActivity(), GestureDetector.OnGestureListene
         compass = Compass(this)
         val cl = object : CompassListener {
             override fun onNewAzimuth(azimuth: Float) {
-                adjustArrow(azimuth)
+                //Do something each time azimuth changes
+                azimuthCount++
+                tempAzimuth += azimuth
+                if (azimuthCount == 200) {
+                    tempAzimuth = tempAzimuth/azimuthCount
+                    checkOrientation(tempAzimuth)
+                    azimuthCount = 0
+                }
             }
         }
         compass.compassListener = cl
     }
 
-    private fun adjustArrow(azimuth: Float) {
-        //Log.d(TAG, "will set rotation from $currentAzimuth to $azimuth")
-
-        val an = RotateAnimation(currentAzimuth, azimuth, Animation.RELATIVE_TO_SELF, 0.5f, Animation.RELATIVE_TO_SELF, 0.5f)
+    private fun checkOrientation(azimuth: Float) {
         currentAzimuth = azimuth
-        an.duration = 1000
-        an.repeatCount = 0
-        an.fillAfter = true
 
-        arrowView.startAnimation(an)
+        Log.d("AZI", "CURRENT AZI" + currentAzimuth)
+
+        if (!firstSpeech) {
+            if ((originalAzimuth - currentAzimuth).absoluteValue > 90) {
+                firstSpeech = true
+                Log.d("ABS VALUE", "ABS VALUE: " + (originalAzimuth - currentAzimuth))
+            }
+        }
+
+        //Current azimuth to be within +/-45 of target azimuth
+        if (destination != "T") {
+            if (currentAzimuth > targetAzimuth - 45 && currentAzimuth < targetAzimuth + 45) {
+                //Move forward
+                i.speakOut("STOP and move forward")
+            }
+            else {
+                destTv.setText(R.string.astray)
+
+                if ((currentAzimuth - targetAzimuth) > 45) {
+                    //Turn left until target azimuth
+                    Log.d("LEFT", "TURN LEFT BRO")
+                    directionIv.setImageDrawable(resources.getDrawable(R.drawable.move_forward, theme))
+                    if (firstSpeech) {
+                        originalAzimuth = currentAzimuth
+                        i.speakOut("Turn left until I say stop")
+                        firstSpeech = false
+                    }
+                } else if ((currentAzimuth - targetAzimuth) < -45) {
+                    //Turn right until target azimuth
+                    Log.d("RIGHT", "TURN RIGHT BRO")
+                    directionIv.setImageDrawable(resources.getDrawable(R.drawable.move_forward, theme))
+                    if (firstSpeech) {
+                        originalAzimuth = currentAzimuth
+                        i.speakOut("Turn right until I say stop")
+                        firstSpeech = false
+                    }
+                }
+            }
+        }
     }
 
     private fun setupShakeDetector() {
@@ -139,4 +193,13 @@ class MainCompassActivity: AppCompatActivity(), GestureDetector.OnGestureListene
 
     override fun onSingleTapConfirmed(event: MotionEvent): Boolean {
         return true
-    }}
+    }
+
+    override fun onSuccess(tts: TextToSpeech) {
+
+    }
+
+    override fun onFailure(tts: TextToSpeech) {
+        finish()
+    }
+}

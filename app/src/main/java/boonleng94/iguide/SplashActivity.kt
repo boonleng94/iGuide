@@ -6,10 +6,10 @@ import android.speech.tts.TextToSpeech
 import android.support.v7.app.AppCompatActivity
 import android.view.Window
 import android.widget.Toast
-import com.estimote.indoorsdk_module.cloud.CloudCallback
-import com.estimote.indoorsdk_module.cloud.EstimoteCloudException
-import com.estimote.indoorsdk_module.cloud.IndoorCloudManagerFactory
-import com.estimote.indoorsdk_module.cloud.Location
+//import com.estimote.indoorsdk_module.cloud.CloudCallback
+//import com.estimote.indoorsdk_module.cloud.EstimoteCloudException
+//import com.estimote.indoorsdk_module.cloud.IndoorCloudManagerFactory
+//import com.estimote.indoorsdk_module.cloud.Location
 import java.util.*
 
 
@@ -62,16 +62,12 @@ class SplashActivity : AppCompatActivity(), TTSListener {
         i = TTSController(this.applicationContext, locality, this)
     }
 
-    private fun startMainActivity(){
-        startActivity(Intent(this, MainIndoorActivity::class.java))
-    }
-
     override fun onSuccess(tts: TextToSpeech) {
         flag = true
 
         //continue using TTS/calling methods and other shits
         i.speakOut(resources.getString(R.string.welcome))
-        startActivity(Intent(this, MainCompassActivity::class.java))
+        startActivity(Intent(this, MainProximityActivity::class.java))
     }
 
     override fun onFailure(tts: TextToSpeech) {
