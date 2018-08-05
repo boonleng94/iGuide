@@ -19,5 +19,4 @@ class CloudController : Application() {
     // This is map for holding all locations from your account.
     // You can move it somewhere else, but for sake of simplicity we put it in here.
     //val locationsById: MutableMap<String, Location> = mutableMapOf()
-
 }

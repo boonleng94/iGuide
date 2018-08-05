@@ -8,11 +8,13 @@
 //import android.content.Intent
 //import android.os.Build
 //import android.os.Bundle
+//import android.os.Handler
 //import android.support.v7.app.AppCompatActivity
 //import android.widget.Toast
 //
 //import android.speech.tts.TextToSpeech
 //import android.support.v4.app.NotificationCompat
+//import android.util.Log
 //import java.util.Locale
 //
 //import com.estimote.indoorsdk.IndoorLocationManagerBuilder
@@ -22,6 +24,7 @@
 //import com.estimote.indoorsdk_module.cloud.LocationPosition
 //import com.estimote.indoorsdk_module.view.IndoorLocationView
 //import com.estimote.mustard.rx_goodness.rx_requirements_wizard.RequirementsWizardFactory
+//import kotlin.math.absoluteValue
 //
 ///**
 // * Main view for indoor location
@@ -35,50 +38,25 @@
 //    private lateinit var i: TTSController
 //    private var flag = false
 //
-//    companion object {
-//        const val intentKeyLocationId = "Testing"
-//        fun createIntent(context: Context, locationId: String): Intent {
-//            val intent = Intent(context, MainIndoorActivity::class.java)
-//            intent.putExtra(intentKeyLocationId, locationId)
-//            return intent
-//        }
-//
-//        //My codes
-//        private const val APP_CODE = 220292
-//    }
-//
 //    override fun onCreate(savedInstanceState: Bundle?) {
 //        super.onCreate(savedInstanceState)
 //        setContentView(R.layout.activity_main)
+//        indoorLocationView = findViewById(R.id.indoor_view)
 //
-//        // Declare notification that will be displayed in user's notification bar.
-//        // You can modify it as you want/
-//        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
-//            val name = getString(R.string.app_name)
-//            val description = getString(R.string.app_desc)
-//            val importance = NotificationManager.IMPORTANCE_DEFAULT
-//            val channel = NotificationChannel("1", name, importance)
-//            channel.description = description
-//            // Register the channel with the system; you can't change the importance
-//            // or other notification behaviors after this
-//            val notificationManager = getSystemService(NotificationManager::class.java)
-//            notificationManager!!.createNotificationChannel(channel)
-//        }
-//
-//        notification = NotificationCompat.Builder(this, "1")
-//                .setContentTitle("iGuide")
-//                .setContentText("Foreground scanning")
-//                .setSmallIcon(R.drawable.iguide_logo)
-//                .build()
+//        createNotificationChannel()
 //
 //        // Get location id from intent and get location object from list of locations
 //        setupLocation()
 //
-//        // Init indoor location view here
-//        indoorLocationView = findViewById(R.id.indoor_view)
+////        val handler = Handler()
+////        val runnable = object : Runnable {
+////            override fun run() {
+////                handler.postDelayed(this, 100)
+////            }
+////        }
 //
-//        // Give location object to your view to draw it on your screen
-//        indoorLocationView.setLocation(location)
+//        //Start
+//        //handler.postDelayed(runnable, 100)
 //
 //        // Create IndoorManager object.
 //        // Long story short - it takes list of scanned beacons, does the magic and returns estimated position (x,y)
@@ -88,8 +66,12 @@
 //        // this will allow for scanning in background and will ensure that the system won't kill the scanning.
 //        // You can also use .withSimpleScanner() that will be handled without service.
 //        indoorLocationManager = IndoorLocationManagerBuilder(this, location, (application as CloudController).cloudCredentials)
-//                .withPositionUpdateInterval(500)
-//                .withScannerInForegroundService(notification).build()
+//                .withScannerInForegroundService(notification)
+//                .build()
+//
+////        var x = 0.0
+////        var y = 0.0
+////        var count = 0
 //
 //        // Hook the listener for position update events
 //        indoorLocationManager.setOnPositionUpdateListener(object : OnPositionUpdateListener {
@@ -98,9 +80,19 @@
 //            }
 //
 //            override fun onPositionUpdate(locationPosition: LocationPosition) {
+//                Log.d("TEST", locationPosition.toString())
 //                indoorLocationView.updatePosition(locationPosition)
-//
-//                Toast.makeText(applicationContext, locationPosition.toString(), Toast.LENGTH_SHORT).show()
+////                x += locationPosition.x
+////                y += locationPosition.y
+////                count++
+////                if (count == 5) {
+////                    var avg = LocationPosition(x/5, y/5)
+////                    Log.d("TEST", avg.toString())
+////                    indoorLocationView.updatePosition(locationPosition)
+////                    count = 0
+////                    x= 0.0
+////                    y = 0.0
+////                }
 //            }
 //        })
 //
@@ -108,6 +100,7 @@
 //        RequirementsWizardFactory.createEstimoteRequirementsWizard()
 //                .fulfillRequirements(this,
 //                        onRequirementsFulfilled = {
+//                            Toast.makeText(applicationContext, "Scanning for beacons now", Toast.LENGTH_SHORT).show()
 //                            indoorLocationManager.startPositioning()
 //                        },
 //                        onRequirementsMissing = {
@@ -121,18 +114,18 @@
 //        i = TTSController(this.applicationContext, Locale.US, this)
 //    }
 //
-//    override fun onDestroy() {
-//        indoorLocationManager.stopPositioning()
-//        super.onDestroy()
-//    }
-//
 //    private fun setupLocation() {
 //        // get id of location to show from intent
-//        val locationId = intent.extras.getString(intentKeyLocationId)
+//        val locationId = "home-h28"
 //        // get object of location. If something went wrong, we build empty location with no data.
+//        // This is map for holding all locations from your account.
+//        // You can move it somewhere else, but for sake of simplicity we put it in here.
 //        location = (application as CloudController).locationsById[locationId] ?: buildEmptyLocation()
 //        // Set the Activity title to you location name
 //        title = location.name
+//
+//        // Give location object to your view to draw it on your screen
+//        indoorLocationView.setLocation(location)
 //    }
 //
 //    private fun buildEmptyLocation(): Location {
@@ -159,12 +152,29 @@
 //        flag = true
 //
 //        //continue using TTS/calling methods and other shits
-//        i.speakOut("TEST")
-//        startActivity(Intent(this, STTTest::class.java))
+//        i.speakOut(resources.getString(R.string.welcome))
 //    }
 //
 //    override fun onFailure(tts: TextToSpeech) {
 //        flag = false
 //        finish()
+//    }
+//
+//    private fun createNotificationChannel() {
+//        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
+//            val name = getString(R.string.app_name)
+//            val description = getString(R.string.app_desc)
+//            val importance = NotificationManager.IMPORTANCE_HIGH
+//            val channel = NotificationChannel("iGuide", name, importance)
+//            channel.description = description
+//            val notificationManager = getSystemService(NotificationManager::class.java)
+//            notificationManager!!.createNotificationChannel(channel)
+//        }
+//
+//        notification = NotificationCompat.Builder(this, "iGuide")
+//                .setContentTitle("iGuide")
+//                .setContentText("Foreground scanning")
+//                .setSmallIcon(R.drawable.iguide_logo)
+//                .build()
 //    }
 //}

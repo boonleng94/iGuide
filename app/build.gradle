@@ -46,6 +46,8 @@ dependencies {
     //implementation 'com.estimote:google-maps-renderer:3.0.0-beta-03'
     implementation 'com.estimote:proximity-sdk:1.0.0'
     implementation 'com.estimote:mustard:0.2.1'
-    implementation 'com.estimote:sdk:1.4.1'
-    implementation 'com.wojtek.wawerek:android-skald:0.1.1'
+    implementation 'com.estimote:sdk:1.4.5'
+
+    implementation 'com.lemmingapex.trilateration:trilateration:1.0.2'
+
 }

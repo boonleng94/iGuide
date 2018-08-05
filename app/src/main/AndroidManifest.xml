@@ -10,9 +10,6 @@
         android:supportsRtl="true"
         android:theme="@style/AppTheme">
 
-        <activity android:name="boonleng94.iguide.MainIndoorActivity">
-        </activity>
-
         <activity
             android:name="boonleng94.iguide.SplashActivity"
             android:configChanges="orientation|keyboardHidden|screenSize"
@@ -22,6 +19,9 @@
                 <category android:name="android.intent.category.LAUNCHER"/>
             </intent-filter>
         </activity>
+
+        <!--<activity android:name="boonleng94.iguide.MainIndoorActivity">-->
+        <!--</activity>-->
 
         <activity android:name="boonleng94.iguide.STTTest">
         </activity>

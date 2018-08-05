@@ -5,7 +5,6 @@ import android.os.Bundle
 import android.speech.tts.TextToSpeech
 import android.support.v7.app.AppCompatActivity
 import android.view.Window
-import android.widget.Toast
 //import com.estimote.indoorsdk_module.cloud.CloudCallback
 //import com.estimote.indoorsdk_module.cloud.EstimoteCloudException
 //import com.estimote.indoorsdk_module.cloud.IndoorCloudManagerFactory

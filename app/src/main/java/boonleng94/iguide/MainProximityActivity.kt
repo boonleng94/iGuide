@@ -13,7 +13,7 @@ import com.estimote.proximity_sdk.api.ProximityObserver
 import com.estimote.proximity_sdk.api.ProximityObserverBuilder
 import com.estimote.proximity_sdk.api.ProximityZone
 import com.estimote.proximity_sdk.api.ProximityZoneBuilder
-
+import com.estimote.scanning_plugin.api.EstimoteBluetoothScannerFactory
 
 class MainProximityActivity : AppCompatActivity() {
     lateinit var observationHandler: ProximityObserver.Handler
@@ -23,89 +23,104 @@ class MainProximityActivity : AppCompatActivity() {
     lateinit var venueFarZone: ProximityZone
 
     companion object {
-        val channelID = "426"
+        val channelID = "iGuide"
     }
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
         setContentView(R.layout.activity_nav)
 
-//        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
-//            val name = getString(R.string.app_name)
-//            val description = getString(R.string.app_desc)
-//            val importance = NotificationManager.IMPORTANCE_DEFAULT
-//            val channel = NotificationChannel(channelID, name, importance)
-//            channel.description = description
-//            val notificationManager = getSystemService(NotificationManager::class.java)
-//            notificationManager!!.createNotificationChannel(channel)
-//        }
-//
-//        val notif = NotificationCompat.Builder(this, channelID)
-//                .setContentTitle(getString(R.string.app_name))
-//                .setContentText("Scanning for beacons")
-//                .setSmallIcon(R.drawable.iguide_logo)
-//                .build()
+        createNotificationChannel()
+
+        val notif = NotificationCompat.Builder(this, channelID)
+                .setContentTitle(getString(R.string.app_name))
+                .setContentText("Proximity Scanning")
+                .setSmallIcon(R.drawable.iguide_logo)
+                .setPriority(NotificationManager.IMPORTANCE_HIGH)
+                .build()
 
         proximityObserver = ProximityObserverBuilder(applicationContext, (application as CloudController).proximityCloudCredentials)
                 .withLowLatencyPowerMode()
-                //.withScannerInForegroundService(notif)
+                .withScannerInForegroundService(notif)
                 .onError { /* handle errors here */
                     throwable ->
                     Log.d("iGuide", "error msg: $throwable")
                 }
                 .build()
 
+//        var bluetoothScanner = EstimoteBluetoothScannerFactory(applicationContext).getSimpleScanner()
+//        var connectivityScanHandler =
+//                bluetoothScanner
+//                        .estimoteConnectivityScan()
+//                        .withOnPacketFoundAction {
+//                            Log.d("Full Telemetry", "Got Full Telemetry packet: $it")
+//                        }
+//                        .withOnScanErrorAction {
+//                            Log.e("Full Telemetry", "Full Telemetry scan failed: $it")
+//                        }
+//                        .start()
+
         venueZone = ProximityZoneBuilder()
-                .forTag("home")
+                .forTag("venue")
                 .inCustomRange(0.5)
                 .onEnter{
                     /* do something here */
                     proximityContext ->
-                    val title = proximityContext.attachments["title"]
+                    val destination = proximityContext.attachments["destination"]
                     val description = proximityContext.attachments["description"]
-                    val imageUrl = proximityContext.attachments["image_url"]
-                    Toast.makeText(this@MainProximityActivity, "Enter house", Toast.LENGTH_SHORT).show()
-                    Log.d("iGuide", "Enter house")
+                    Toast.makeText(this@MainProximityActivity, "Entered $destination, description: $description", Toast.LENGTH_SHORT).show()
+                    Log.d("iGuide", "Entered $destination, description: $description")
                 }
                 .onExit{
                     /* do something here */
                     Toast.makeText(this@MainProximityActivity, "Exit house", Toast.LENGTH_SHORT).show()
-                    Log.d("iGuide", "Exit house")
+                    Log.d("iGuide", "Exit tag")
 
                 }
                 .onContextChange{
                     /* do something here */
-                    Toast.makeText(this@MainProximityActivity, "Change house", Toast.LENGTH_SHORT).show()
-                    Log.d("iGuide", "Change house")
-
+                    proximityZoneContext ->
+                    if (!proximityZoneContext.isEmpty()) {
+                        val nearestBeacon = proximityZoneContext.iterator().next()
+                        val nearestDest = nearestBeacon.attachments["destination"]
+                        val nearestDesc = nearestBeacon.attachments["description"]
+                        Toast.makeText(this@MainProximityActivity, "Nearest dest: $nearestDest, description: $nearestDesc", Toast.LENGTH_SHORT).show()
+                        Log.d("iGuide", "Nearest dest: $nearestDest, description: $nearestDesc")
+                    }
                 }
                 .build()
 
         venueFarZone = ProximityZoneBuilder()
                 .forTag("home")
-                .inFarRange()
+                .inCustomRange(3.0)
                 .onEnter{
                     /* do something here */
-                    Toast.makeText(this@MainProximityActivity, "Enter FAR house", Toast.LENGTH_SHORT).show()
-                    Log.d("iGuide", "Enter FAR house")
+                    Toast.makeText(this@MainProximityActivity, "Entered vicinity", Toast.LENGTH_SHORT).show()
+                    Log.d("iGuide", "Entered vicinity")
 
                 }
                 .onExit{
                     /* do something here */
-                    Toast.makeText(this@MainProximityActivity, "Exit FAR house", Toast.LENGTH_SHORT).show()
-                    Log.d("iGuide", "Exit FAR house")
+                    Toast.makeText(this@MainProximityActivity, "Exit vicinity", Toast.LENGTH_SHORT).show()
+                    Log.d("iGuide", "Exit vicinity")
 
                 }
                 .onContextChange{
                     /* do something here */
-                    Toast.makeText(this@MainProximityActivity, "Change FAR house", Toast.LENGTH_SHORT).show()
-                    Log.d("iGuide", "Change FAR house")
-
+                    proximityZoneContext ->
+                    if (!proximityZoneContext.isEmpty()) {
+                        proximityZoneContext.iterator().forEach {
+                            nearestBeacon ->
+                            val nearestDest = nearestBeacon.attachments["destination"]
+                            val nearestDesc = nearestBeacon.attachments["description"]
+                            Log.d("iGuide", "Nearest dest: $nearestDest, description: $nearestDesc")
+                        }
+                    }
+                    Toast.makeText(this@MainProximityActivity, "Changed vicinity", Toast.LENGTH_SHORT).show()
+                    Log.d("iGuide", "Changed vicinity")
                 }
                 .build()
 
-//        observationHandler = proximityObserver.startObserving(venueZone)
-//        observationHandler2 = proximityObserver.startObserving(venueFarZone)
 
         RequirementsWizardFactory.createEstimoteRequirementsWizard().fulfillRequirements(this,
                 // onRequirementsFulfilled
@@ -124,13 +139,6 @@ class MainProximityActivity : AppCompatActivity() {
         }
     }
 
-    override fun onPause() {
-//        observationHandler.stop()
-//        observationHandler2.stop()
-        Log.d("iGuide", "KENA PAUSE LEH")
-        super.onPause()
-    }
-
     override fun onDestroy() {
         observationHandler.stop()
         observationHandler2.stop()
@@ -138,10 +146,15 @@ class MainProximityActivity : AppCompatActivity() {
         super.onDestroy()
     }
 
-    override fun onResume() {
-//        observationHandler = proximityObserver.startObserving(venueZone)
-//        observationHandler2 = proximityObserver.startObserving(venueFarZone)
-        Log.d("iGuide", "RESUME?!")
-        super.onResume()
+    private fun createNotificationChannel() {
+        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
+            val name = getString(R.string.app_name)
+            val description = getString(R.string.app_desc)
+            val importance = NotificationManager.IMPORTANCE_HIGH
+            val channel = NotificationChannel(channelID, name, importance)
+            channel.description = description
+            val notificationManager = getSystemService(NotificationManager::class.java)
+            notificationManager!!.createNotificationChannel(channel)
+        }
     }
 }

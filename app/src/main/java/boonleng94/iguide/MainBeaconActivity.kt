@@ -138,17 +138,17 @@ class MainBeaconActivity : AppCompatActivity(){
         SystemRequirementsChecker.checkWithDefaultDialogs(this)
 
         beaconManager.connect {
-            //beaconManager.startRanging(region)
+            beaconManager.startRanging(region)
             //beaconManager.startLocationDiscovery()
-            beaconManager.startConfigurableDevicesDiscovery()
+            //beaconManager.startConfigurableDevicesDiscovery()
             //beaconManager.startEddystoneDiscovery()
         }
     }
 
     override fun onPause() {
-        //beaconManager.stopRanging(region)
+        beaconManager.stopRanging(region)
         //beaconManager.stopLocationDiscovery()
-        beaconManager.stopConfigurableDevicesDiscovery()
+        //beaconManager.stopConfigurableDevicesDiscovery()
         //beaconManager.stopEddystoneDiscovery()
         super.onPause()
     }
