@@ -125,8 +125,9 @@ class MainProximityActivity : AppCompatActivity() {
         RequirementsWizardFactory.createEstimoteRequirementsWizard().fulfillRequirements(this,
                 // onRequirementsFulfilled
                 {
-                    observationHandler = proximityObserver.startObserving(venueZone)
-                    observationHandler2 = proximityObserver.startObserving(venueFarZone)
+                    //observationHandler = proximityObserver.startObserving(venueZone)
+                    //observationHandler2 = proximityObserver.startObserving(venueFarZone)
+                    observationHandler = proximityObserver.startObserving(venueZone, venueFarZone)
                     Log.d("iGuide", "Requirements fulfilled, observation started")
                 },
                 // onRequirementsMissing
@@ -141,7 +142,7 @@ class MainProximityActivity : AppCompatActivity() {
 
     override fun onDestroy() {
         observationHandler.stop()
-        observationHandler2.stop()
+        //observationHandler2.stop()
         Log.d("iGuide", "KENA STOP LEH")
         super.onDestroy()
     }

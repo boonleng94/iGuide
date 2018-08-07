@@ -17,7 +17,7 @@ import java.util.*
  * Make sure to initialize EstimoteSDK with your APP ID and APP TOKEN in {@link CloudController} class.
  * You can get those credentials from your Estimote Cloud account :)
  */
-class SplashActivity : AppCompatActivity(), TTSListener {
+class SplashActivity : AppCompatActivity() {
     private lateinit var i: TTSController
     private var flag = false
     private var locality = Locale.US
@@ -66,7 +66,7 @@ class SplashActivity : AppCompatActivity(), TTSListener {
 
         //continue using TTS/calling methods and other shits
         i.speakOut(resources.getString(R.string.welcome))
-        startActivity(Intent(this, MainProximityActivity::class.java))
+        startActivity(Intent(this, MainBeaconActivity::class.java))
     }
 
     override fun onFailure(tts: TextToSpeech) {

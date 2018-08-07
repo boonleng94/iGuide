@@ -25,7 +25,6 @@ class MainCompassActivity: AppCompatActivity(), GestureDetector.OnGestureListene
 
     private lateinit var directionIv: ImageView
     private lateinit var destTv: TextView
-
     private lateinit var shakeDetector: ShakeDetector
     private lateinit var gDetector: GestureDetectorCompat
 
@@ -113,13 +112,13 @@ class MainCompassActivity: AppCompatActivity(), GestureDetector.OnGestureListene
 
     private fun setupCompass() {
         compass = Compass(this)
-        val cl = object : CompassListener {
+        val cl = object: CompassListener{
             override fun onNewAzimuth(azimuth: Float) {
                 //Do something each time azimuth changes
                 azimuthCount++
                 tempAzimuth += azimuth
                 if (azimuthCount == 200) {
-                    tempAzimuth = tempAzimuth/azimuthCount
+                    tempAzimuth /= azimuthCount
                     checkOrientation(tempAzimuth)
                     azimuthCount = 0
                 }
@@ -131,7 +130,7 @@ class MainCompassActivity: AppCompatActivity(), GestureDetector.OnGestureListene
     private fun checkOrientation(azimuth: Float) {
         currentAzimuth = azimuth
 
-        Log.d("AZI", "CURRENT AZI" + currentAzimuth)
+        Log.d("AZI", "CURRENT AZI $currentAzimuth")
 
         if (!firstSpeech) {
             if ((originalAzimuth - currentAzimuth).absoluteValue > 90) {
@@ -172,9 +171,37 @@ class MainCompassActivity: AppCompatActivity(), GestureDetector.OnGestureListene
         }
     }
 
+    private fun getOrientation(azimuth: Float): Orientation {
+        return if (azimuth > 315 || azimuth < 45) {
+            Orientation.NORTH
+        } else if (azimuth > 45 || azimuth < 135) {
+            Orientation.EAST
+        } else if (azimuth > 135 || azimuth < 225) {
+            Orientation.SOUTH
+        } else {
+            Orientation.WEST
+        }
+    }
+
+    private fun getOrientation(userPrevCoordinate: Coordinate, userCurrentOrientation: Orientation, userCurrentCoordinate: Coordinate): Orientation {
+        return if (userPrevCoordinate!!.x - userCurrentCoordinate.x > 0) {
+            Orientation.WEST
+        } else if (userCurrentCoordinate.x - userPrevCoordinate.x > 0) {
+            Orientation.EAST
+        } else {
+            if (userPrevCoordinate.y - userCurrentCoordinate.y > 0) {
+                Orientation.SOUTH
+            } else if (userCurrentCoordinate.y - userPrevCoordinate.y > 0) {
+                Orientation.NORTH
+            } else {
+                userCurrentOrientation
+            }
+        }
+    }
+
     private fun setupShakeDetector() {
         shakeDetector = ShakeDetector(this)
-        val sl = object : ShakeListener {
+        val sl = object: ShakeListener {
             override fun onShake(count: Int) {
                 //Do shake event here
                 if (count > 2) {

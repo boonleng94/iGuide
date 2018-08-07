@@ -8,6 +8,10 @@ import android.hardware.SensorManager
 
 import kotlin.math.sqrt
 
+interface ShakeListener {
+    fun onShake(count: Int)
+}
+
 class ShakeDetector(context: Context) : SensorEventListener {
     lateinit var shakeListener: ShakeListener
 

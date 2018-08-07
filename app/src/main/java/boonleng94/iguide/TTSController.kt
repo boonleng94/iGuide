@@ -1,11 +1,16 @@
 package boonleng94.iguide
 
-
 import android.speech.tts.TextToSpeech
 import android.content.Context
 import android.util.Log
 
 import java.util.Locale
+
+interface TTSListener {
+    fun onSuccess(tts: TextToSpeech)
+
+    fun onFailure(tts: TextToSpeech)
+}
 
 class TTSController(context: Context, locale: Locale, callback: TTSListener) {
     private lateinit var talk: TextToSpeech

@@ -54,6 +54,7 @@ class MainBeaconActivity : AppCompatActivity(){
                         }
                     })
                 }
+                beaconManager.stopLocationDiscovery()
             }
         })
 
@@ -93,15 +94,15 @@ class MainBeaconActivity : AppCompatActivity(){
             }
         })
 
-        //EDDYSTONE packet listener
-        beaconManager.setEddystoneListener(BeaconManager.EddystoneListener { list ->
-            if (!list.isEmpty()) {
-                // TODO: update the UI here
-                for (item in list) {
-                    Log.d("ESTIMOTE EDDY", item.instance + " accuracy : " + RegionUtils.computeAccuracy(item))
-                }
-            }
-        })
+//        //EDDYSTONE packet listener
+//        beaconManager.setEddystoneListener(BeaconManager.EddystoneListener { list ->
+//            if (!list.isEmpty()) {
+//                // TODO: update the UI here
+//                for (item in list) {
+//                    Log.d("ESTIMOTE EDDY", item.instance + " accuracy : " + RegionUtils.computeAccuracy(item))
+//                }
+//            }
+//        })
 
         //iBeacon packet listener
         beaconManager.setRangingListener(BeaconManager.BeaconRangingListener{ _, list ->
@@ -120,6 +121,7 @@ class MainBeaconActivity : AppCompatActivity(){
                     })
                 }
             }
+            beaconManager.stopRanging(region)
         })
     }
 
@@ -139,7 +141,7 @@ class MainBeaconActivity : AppCompatActivity(){
 
         beaconManager.connect {
             beaconManager.startRanging(region)
-            //beaconManager.startLocationDiscovery()
+            beaconManager.startLocationDiscovery()
             //beaconManager.startConfigurableDevicesDiscovery()
             //beaconManager.startEddystoneDiscovery()
         }
@@ -147,7 +149,7 @@ class MainBeaconActivity : AppCompatActivity(){
 
     override fun onPause() {
         beaconManager.stopRanging(region)
-        //beaconManager.stopLocationDiscovery()
+        beaconManager.stopLocationDiscovery()
         //beaconManager.stopConfigurableDevicesDiscovery()
         //beaconManager.stopEddystoneDiscovery()
         super.onPause()
