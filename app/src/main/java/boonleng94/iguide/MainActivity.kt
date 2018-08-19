@@ -1,7 +1,6 @@
 package boonleng94.iguide
 
 import android.os.Bundle
-import android.speech.tts.TextToSpeech
 import android.support.v4.view.GestureDetectorCompat
 import android.support.v7.app.AppCompatActivity
 import android.util.Log
@@ -9,16 +8,9 @@ import android.view.GestureDetector
 import android.view.MotionEvent
 import android.widget.ImageView
 import android.widget.TextView
-import com.lemmingapex.trilateration.LinearLeastSquaresSolver
-import com.lemmingapex.trilateration.NonLinearLeastSquaresSolver
-import com.lemmingapex.trilateration.TrilaterationFunction
-import org.apache.commons.math3.fitting.leastsquares.LevenbergMarquardtOptimizer
-import org.apache.commons.math3.linear.SingularMatrixException
-import java.util.*
 import kotlin.math.absoluteValue
 
-class MainCompassActivity: AppCompatActivity(), GestureDetector.OnGestureListener, GestureDetector.OnDoubleTapListener {
-    private val TAG = "CompassActivity"
+class MainActivity: AppCompatActivity(), GestureDetector.OnGestureListener, GestureDetector.OnDoubleTapListener {
     private lateinit var i: TTSController
 
     private lateinit var compass: Compass
@@ -46,38 +38,6 @@ class MainCompassActivity: AppCompatActivity(), GestureDetector.OnGestureListene
         setupShakeDetector()
         setupDoubleTapGesture()
         //i = TTSController(this.applicationContext, Locale.US, this)
-
-        val positions = arrayOf(doubleArrayOf(0.0, 0.0), doubleArrayOf(0.0, 5.0), doubleArrayOf(3.0, 2.0))
-        val distances = doubleArrayOf(0.9, 1.0, 2.0)
-        val expectedPosition = doubleArrayOf(0.2, 2.4)
-        val acceptedDelta = 0.1
-
-        val trilaterationFunction = TrilaterationFunction(positions, distances)
-        val lSolver = LinearLeastSquaresSolver(trilaterationFunction)
-        val nlSolver = NonLinearLeastSquaresSolver(trilaterationFunction, LevenbergMarquardtOptimizer())
-
-        val linearCalculatedPosition = lSolver.solve()
-        val nonLinearOptimum = nlSolver.solve()
-
-        val res1 = linearCalculatedPosition.toArray()
-        val res2 = nonLinearOptimum.point.toArray()
-
-        Log.d("iGuide", "expectedPosition: #expectedPosition")
-        Log.d("iGuide", "linear calculatedPosition: $res1")
-        Log.d("iGuide", "non-linear calculatedPosition: $res2")
-
-        Log.d("iGuide", "number of iterations: " + nonLinearOptimum.iterations)
-        Log.d("iGuide", "number of evaluations: "+ nonLinearOptimum.evaluations)
-
-        try {
-            val standardDeviation = nonLinearOptimum.getSigma(0.0)
-            Log.d("iGuide", "standard deviation: " + standardDeviation.toArray())
-            Log.d("iGuide", "norm of deviation: " + standardDeviation.norm)
-            val covarianceMatrix = nonLinearOptimum.getCovariances(0.0)
-            Log.d("iGuide", "covariane matrix: $covarianceMatrix")
-        } catch (e: SingularMatrixException) {
-            Log.d("iGuide", e.message)
-        }
     }
 
     override fun onStart() {

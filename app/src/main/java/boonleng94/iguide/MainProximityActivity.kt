@@ -13,7 +13,6 @@ import com.estimote.proximity_sdk.api.ProximityObserver
 import com.estimote.proximity_sdk.api.ProximityObserverBuilder
 import com.estimote.proximity_sdk.api.ProximityZone
 import com.estimote.proximity_sdk.api.ProximityZoneBuilder
-import com.estimote.scanning_plugin.api.EstimoteBluetoothScannerFactory
 
 class MainProximityActivity : AppCompatActivity() {
     lateinit var observationHandler: ProximityObserver.Handler
@@ -39,7 +38,7 @@ class MainProximityActivity : AppCompatActivity() {
                 .setPriority(NotificationManager.IMPORTANCE_HIGH)
                 .build()
 
-        proximityObserver = ProximityObserverBuilder(applicationContext, (application as CloudController).proximityCloudCredentials)
+        proximityObserver = ProximityObserverBuilder(applicationContext, (application as MainApp).proximityCloudCredentials)
                 .withLowLatencyPowerMode()
                 .withScannerInForegroundService(notif)
                 .onError { /* handle errors here */

@@ -6,16 +6,10 @@ import android.util.Log
 
 import java.util.Locale
 
-interface TTSListener {
-    fun onSuccess(tts: TextToSpeech)
-
-    fun onFailure(tts: TextToSpeech)
-}
-
-class TTSController(context: Context, locale: Locale, callback: TTSListener) {
+class TTSController {
     private lateinit var talk: TextToSpeech
 
-    init {
+    fun initialize(context: Context, locale: Locale) {
         talk = TextToSpeech(context, TextToSpeech.OnInitListener { status ->
             if (status == TextToSpeech.SUCCESS) {
                 val result = talk.setLanguage(locale)
@@ -23,9 +17,8 @@ class TTSController(context: Context, locale: Locale, callback: TTSListener) {
                     Log.e("TTS", "This Language is not supported")
                 }
                 talk.setSpeechRate(0.8F)
-                callback.onSuccess(talk)
+                speakOut("Welcome to EyeGuide")
             } else {
-                callback.onFailure(talk)
                 Log.e("TTS", "TTS Initialization Error")
             }
         })

@@ -2,25 +2,21 @@ package boonleng94.iguide
 
 import android.content.Intent
 import android.os.Bundle
-import android.speech.tts.TextToSpeech
 import android.support.v7.app.AppCompatActivity
 import android.view.Window
-//import com.estimote.indoorsdk_module.cloud.CloudCallback
-//import com.estimote.indoorsdk_module.cloud.EstimoteCloudException
-//import com.estimote.indoorsdk_module.cloud.IndoorCloudManagerFactory
-//import com.estimote.indoorsdk_module.cloud.Location
+import com.estimote.indoorsdk_module.cloud.CloudCallback
+import com.estimote.indoorsdk_module.cloud.EstimoteCloudException
+import com.estimote.indoorsdk_module.cloud.IndoorCloudManagerFactory
+import com.estimote.indoorsdk_module.cloud.Location
 import java.util.*
-
 
 /**
  * Simple splash screen to load the data from cloud.
- * Make sure to initialize EstimoteSDK with your APP ID and APP TOKEN in {@link CloudController} class.
+ * Make sure to initialize EstimoteSDK with your APP ID and APP TOKEN in {@link MainApp} class.
  * You can get those credentials from your Estimote Cloud account :)
  */
-class SplashActivity : AppCompatActivity() {
+class SplashActivity : AppCompatActivity(){
     private lateinit var i: TTSController
-    private var flag = false
-    private var locality = Locale.US
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
@@ -30,47 +26,34 @@ class SplashActivity : AppCompatActivity() {
         supportActionBar?.hide()
         setContentView(R.layout.activity_splash)
 
+        i = TTSController()
+        i.initialize(applicationContext, Locale.US)
+        (application as MainApp).speech = i
+
         // Create object for communicating with Estimote cloud.
         // IMPORTANT - you need to put here your Estimote Cloud credentials.
-        // We daclared them in CloudController.ktlass
-//        val cloudManager = IndoorCloudManagerFactory().create(applicationContext, (application as CloudController).cloudCredentials)
-//
-//        // Launch request for all locations connected to your account.
-//        // If you don't see any - check your cloud account - maybe you should create those locations first?
-//        cloudManager.getAllLocations(object : CloudCallback<List<Location>> {
-//            override fun success(locations: List<Location>) {
-//                // Take location objects and map them to their identifiers
-//                val locationIds = locations.associateBy { it.identifier }
-//
-//                // save mapped locations to global pseudo "storage". You can do this in many various way :)
-//                (application as CloudController).locationsById.putAll(locationIds)
-//
-//                // If all is fine, go ahead and launch activity with list of your locations :)
-//                startMainActivity()
-//            }
-//
-//            override fun failure(serverException: EstimoteCloudException) {
-//                // For the sake of this demo, you need to make sure you have an internet connection and AppID/AppToken set :)
+        // We daclared them in MainApp.ktlass
+        val cloudManager = IndoorCloudManagerFactory().create(applicationContext, (application as MainApp).cloudCredentials)
+
+        // Launch request for all locations connected to your account.
+        // If you don't see any - check your cloud account - maybe you should create those locations first?
+        cloudManager.getLocation("home-h28", object: CloudCallback<Location> {
+            override fun success(location: Location) {
+                (application as MainApp).location = location
+
+                // If all is fine, go ahead and launch activity with list of your locations :)
+                //startActivity(Intent(applicationContext, MainIndoorActivity::class.java))
+            }
+
+            override fun failure(serverException: EstimoteCloudException) {
+                // For the sake of this demo, you need to make sure you have an internet connection and AppID/AppToken set :)
 //                Toast.makeText(this@SplashActivity, "Unable to fetch location data from Estimote" +
 //                        "Please check your internet connection", Toast.LENGTH_LONG).show()
 //                startMainActivity()
-//
-//            }
-//        })
+            }
+        })
 
-        i = TTSController(this.applicationContext, locality, this)
-    }
+        startActivity(Intent(applicationContext, MainProximityActivity::class.java))
 
-    override fun onSuccess(tts: TextToSpeech) {
-        flag = true
-
-        //continue using TTS/calling methods and other shits
-        i.speakOut(resources.getString(R.string.welcome))
-        startActivity(Intent(this, MainBeaconActivity::class.java))
-    }
-
-    override fun onFailure(tts: TextToSpeech) {
-        flag = false
-        finish()
     }
 }

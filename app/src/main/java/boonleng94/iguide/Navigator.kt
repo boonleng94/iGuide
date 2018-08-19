@@ -49,7 +49,7 @@ class Navigator(currentPos: Coordinate, destination: Coordinate, orientation: Or
      * Returns true if the given coordinates are within the Arena boundaries
      */
     private fun checkValidCoordinates(y: Int, x: Int): Boolean {
-        return y >= 0 && x >= 0 && y < 20 && x < 15
+        return y >= 0 && x >= 0 && y < destination.y && x < destination.x
     }
 
     /**
