@@ -18,6 +18,8 @@ import com.estimote.indoorsdk_module.view.IndoorLocationView
 import com.estimote.indoorsdk_module.cloud.Location
 import com.estimote.indoorsdk_module.cloud.LocationPosition
 
+import com.estimote.indoorsdk_module.common.extensions.distanceTo
+
 /**
  * Main view for indoor location
  */
@@ -77,9 +79,9 @@ class MainIndoorActivity : AppCompatActivity() {
                 Log.d("TEST", locationPosition.toString())
                 indoorLocationView.updatePosition(locationPosition)
                 val coffeeMachine = LocationPosition(3.1, 7.2, 0.0)
-//                if (locationPosition.distanceTo(coffeeMachine) > 5) {
-//                    // Start brewing coffee
-//                }
+                if (locationPosition.distanceTo(coffeeMachine) > 5) {
+                    // Start brewing coffee
+                }
 //                x += locationPosition.x
 //                y += locationPosition.y
 //                count++

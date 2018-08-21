@@ -3,11 +3,9 @@ package boonleng94.iguide
 import android.util.Log
 import java.util.*
 
-class Coordinate(var x: Int, var y: Int) //Every 0.5m = 1 Unit
+data class Coordinate(var x: Int, var y: Int) //Every 0.5m = 1 Unit
 
-class User {
-    lateinit var orientation: Orientation
-    lateinit var currentPos: Coordinate
+data class User(var orientation: Orientation, var currentPos: Coordinate) {
     lateinit var previousPos: Coordinate
     lateinit var destination: Coordinate
 }
