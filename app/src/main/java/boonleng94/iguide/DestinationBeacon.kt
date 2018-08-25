@@ -2,6 +2,7 @@ package boonleng94.iguide
 
 data class DestinationBeacon(val deviceID: String, var distance: Double) {
     lateinit var coordinate: Coordinate
+    lateinit var name: String
 
     override fun equals(o: Any?): Boolean {
         if (o is DestinationBeacon) {
