@@ -16,7 +16,6 @@ import android.util.Log
 import android.view.GestureDetector
 import android.view.Gravity
 import android.view.MotionEvent
-import android.view.View
 import android.widget.TextView
 import android.widget.Toast
 
@@ -47,37 +46,30 @@ class MainDestinationsActivity : AppCompatActivity() {
     private lateinit var viewList: ArrayList<TextView>
     private lateinit var TTSCtrl: TTSController
     private lateinit var compass: Compass
-
-    private var destList = ArrayList<DestinationBeacon>()
-
-    //private var destinationsUpdated = false
-
-    private var userNorth = 0.toFloat()
-
-    //private var userPos = Coordinate(0, 0)
-    private var userOrienFound = false
-
-    var destOutputString = StringBuilder("Where would you like to go? ")
-
+    private lateinit var userOrientation: Orientation
     private lateinit var mSpeechRecognizer: SpeechRecognizer
     private lateinit var mSpeechRecognizerIntent: Intent
     private lateinit var mSpeechRecognitionListener: SpeechRecognitionListener
 
-    private var listenDestChoice: Boolean = false
+    private var destList = ArrayList<DestinationBeacon>()
 
-    companion object {
-        const val channelID = "iGuide"
-        val tagToObserve = arrayOf("corridor", "entry")
-    }
+    private var destOutputString = StringBuilder("Where would you like to go? ")
+
+    private var TTSOutput = "iGuide"
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
         setContentView(R.layout.activity_dest)
 
         createNotificationChannel()
-        initialize()
 
-        val notif = NotificationCompat.Builder(this, channelID)
+        TTSCtrl = (application as MainApp).speech
+        TTSOutput = "Please wait as I find destinations"
+        TTSCtrl.speakOut(TTSOutput)
+
+        initializeListeners()
+
+        val notif = NotificationCompat.Builder(this, (application as MainApp).channelID)
                 .setContentTitle(getString(R.string.app_name))
                 .setContentText("Fetching destinations...")
                 .setSmallIcon(R.drawable.iguide_logo)
@@ -125,10 +117,10 @@ class MainDestinationsActivity : AppCompatActivity() {
                 }
                 .build()
 
-        //Build A ProximityZone to find Beacons with tag 'corridoor' within 20m distance
+        //Build A ProximityZone to find Beacons with tag 'corridor' within 20m distance
         //2. Get beacons in the corridor, get the coordinate of the beacon and put into destList of beacons that match the deviceID
         val corridorZone = ProximityZoneBuilder()
-                .forTag(tagToObserve[0])
+                .forTag("corridor")
                 .inCustomRange(20.0)
                 .onEnter {
                     //only nearest beacon
@@ -168,36 +160,9 @@ class MainDestinationsActivity : AppCompatActivity() {
                                         if (!viewList.contains(tvDest)) {
                                             viewList.add(tvDest)
                                             sv_linear_layout.addView(tvDest)
-                                            //destinationsUpdated = true
                                         }
+
                                     }
-                                }
-
-                                //boolean used to find out if orientation found before - if found, no need to trilat again
-                                if (!userOrienFound) {
-                                    //3. Once destList is not empty - beacons are around, do trilateration of user, no need for proximity ranging anymore
-                                    val oldPos = findUserPos()
-                                    //destObsHandler.stop()
-
-                                    //4. Make user walk 3-5 steps forward, do trilateration again to find new coordinate
-                                    TTSCtrl.speakOut("Please walk 3 to 5 steps forward ahead of you for me to find out your orientation")
-                                    Thread.sleep(3000)
-
-                                    val newPos = findUserPos()
-
-                                    //5. Find orientation of user
-                                    val orienAngle = findUserOrientation(oldPos, newPos)
-
-                                    TTSCtrl.speakOut("I am now going to orientate you to face North")
-
-                                    //6. Make him face north
-                                    makeUserFaceNorth(orienAngle)
-
-                                    //7. User is now facing North
-                                    userOrienFound = true
-                                } else if (userOrienFound) {
-                                    destObsHandler.stop()
-                                    readDestinations()
                                 }
                             }
                         }
@@ -205,79 +170,23 @@ class MainDestinationsActivity : AppCompatActivity() {
                 }
                 .build()
 
-//        entryZone = ProximityZoneBuilder()
-//                .forTag(tagToObserve[1])
-//                .inCustomRange(0.5)
-//                .onEnter{
-//                    //only nearest beacon
-//                    dest ->
-//                    val destination = dest.attachments["destination"]
-//                    val description = dest.attachments["description"]
-//                    Toast.makeText(this, "Entered entry $destination, description: $description", Toast.LENGTH_SHORT).show()
-//                    Log.d("iGuide", "Entered entry $destination, description: $description")
-//                }
-//                .onExit{
-//                    Toast.makeText(this, "Left the entry", Toast.LENGTH_SHORT).show()
-//                    Log.d("iGuide", "Exit tag")
-//
-//                }
-//                .onContextChange{
-//                    //get all beacons
-//                    allDests ->
-//                    if (!allDests.isEmpty()) {
-//                        val dest = allDests.iterator().next()
-//
-//                        val destDeviceID = dest.deviceId
-//
-//                        for (i in destList) {
-//                            if (i.deviceID == destDeviceID) {
-//                                val tvDest = TextView(this)
-//                                tvDest.gravity = Gravity.CENTER_HORIZONTAL
-//                                tvDest.textSize = 24f
-//                                tvDest.text = i.deviceID
-//                                sv_linear_layout.addView(tvDest)
-//                            }
-//                        }
-//                    }
-//                }
-//                .build()
-
         destObsHandler = destProxObserver.startObserving(corridorZone)
 
-        readDestinations()
+        //After scanning for beacons for 10s
+        Handler().postDelayed({
+            scanHandle.stop()
+            destObsHandler.stop()
+            readDestinations()
+        }, 10000)
     }
 
     override fun onDestroy() {
-        destObsHandler.stop()
         scanHandle.stop()
-        Log.d(channelID, "Corridor prox obs destroyed")
+        destObsHandler.stop()
+        shakeDetector.stop()
+        Log.d((application as MainApp).channelID, "MainDestinationsActivity destroyed")
         super.onDestroy()
     }
-
-//    private fun readDestinations() {
-//        Handler().apply {
-//            val TTSRunnable = object : Runnable {
-//                override fun run() {
-//                    if (destinationsUpdated) {
-//                        val destCount = destList.size
-//                        postDelayed(this, 5000)
-//                        if (destCount == destList.size) {
-//                            //wait for further dest updates for 5s, if not read out destinations
-//                            var index = 1
-//                            for (i in viewList) {
-//                                outputString.append(". $index. ${i.text}. ")
-//                                index++
-//                            }
-//
-//                            TTSCtrl.speakOut(outputString.toString())
-//                            destinationsUpdated = false
-//                        }
-//                    }
-//                }
-//            }
-//            postDelayed(TTSRunnable, 5000)
-//        }
-//    }
 
     private fun readDestinations() {
         var index = 1
@@ -286,82 +195,27 @@ class MainDestinationsActivity : AppCompatActivity() {
             index++
         }
 
-        TTSCtrl.speakOut(destOutputString.toString())
+        TTSOutput = destOutputString.toString()
+        TTSCtrl.speakOut(TTSOutput)
 
-        listenDestChoice = true
+        mSpeechRecognizer.startListening(mSpeechRecognizerIntent)
+    }
 
-        if (listenDestChoice)
-        {
-            mSpeechRecognizer.startListening(mSpeechRecognizerIntent);
+    private fun getOrientation(azimuth: Float): Orientation {
+        return if (azimuth > 315 || azimuth < 45) {
+            Orientation.NORTH
+        } else if (azimuth > 45 || azimuth < 135) {
+            Orientation.EAST
+        } else if (azimuth > 135 || azimuth < 225) {
+            Orientation.SOUTH
+        } else {
+            Orientation.WEST
         }
     }
 
-    private fun findUserOrientation(previousPos: Coordinate, currentPos: Coordinate): Float {
-        return Math.atan2((currentPos.y - previousPos.y).toDouble(), (currentPos.x - previousPos.x).toDouble()).toFloat()
-    }
-
-    private fun makeUserFaceNorth(angle: Float) {
-        var angleToTurn: Float = 0.toFloat()
-        var direction = Direction.FORWARD
-
-        var oldAzimuth: Float = 0.toFloat()
-        var oldAzimuthFound = false
-
-
-        //NORTH = 90degrees
-        //+-10degrees
-        if (angle > 79 && angle < 101) {
-            //Already facing north
-        } else if (angle < 90) {
-            angleToTurn = 90 - angle
-            direction = Direction.LEFT
-        } else if (270 > angle && angle > 90) {
-            angleToTurn = angle - 90
-            direction = Direction.RIGHT
-        } else if (angle > 270) {
-            angleToTurn = 360 - angle + 90
-            direction = Direction.LEFT
-        }
-
-        TTSCtrl.speakOut("Turn $direction until I say stop")
-
-        val cl = object: CompassListener{
-            override fun onNewAzimuth(azimuth: Float) {
-                //Do something each time azimuth changes
-                if (!oldAzimuthFound) {
-                    oldAzimuth = azimuth
-                    oldAzimuthFound = true
-                } else {
-                    var targetAzimuth = oldAzimuth
-                    userNorth = targetAzimuth
-
-                    if (direction == Direction.LEFT) {
-                        targetAzimuth -= angleToTurn
-                    } else if (direction == Direction.RIGHT) {
-                        targetAzimuth += angleToTurn
-                    }
-
-                    //Find deliberate turn
-                    if ((oldAzimuth - azimuth).absoluteValue > 11) {
-                        var currentAzimuth = azimuth
-
-                        if ((currentAzimuth - targetAzimuth).absoluteValue < 11) {
-                            //User is at north already
-                            TTSCtrl.speakOut("Please stop. You are now facing North")
-                            compass.stop()
-                        }
-                    }
-                }
-            }
-        }
-        compass.compassListener = cl
-
-        compass.start()
-    }
-
-    private fun findUserPos(): Coordinate {
+    private fun findUserPos(count: Int): Coordinate {
         // use only 3 nearest beacon coordinates/distances, can be extended to more
-        var count = 2
+        var count = count
         var posList = Array(count) {_ -> doubleArrayOf(0.0, 0.0)}
         var distanceList = DoubleArray(count)
 
@@ -381,11 +235,6 @@ class MainDestinationsActivity : AppCompatActivity() {
         }
 
         val trilaterationFunction = TrilaterationFunction(posList, distanceList)
-
-//        val positions = arrayOf(doubleArrayOf(0.0, 0.0), doubleArrayOf(0.0, 5.0), doubleArrayOf(3.0, 2.0))
-//        val distances = doubleArrayOf(0.9, 1.0, 2.0)
-//        val trilaterationFunction = TrilaterationFunction(positions, distances)
-
         val lSolver = LinearLeastSquaresSolver(trilaterationFunction)
         val nlSolver = NonLinearLeastSquaresSolver(trilaterationFunction, LevenbergMarquardtOptimizer())
 
@@ -414,23 +263,35 @@ class MainDestinationsActivity : AppCompatActivity() {
         return Coordinate(res1[0].roundToInt(), res1[1].roundToInt())
     }
 
-    private fun createNotificationChannel() {
-        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
-            val name = getString(R.string.app_name)
-            val importance = NotificationManager.IMPORTANCE_HIGH
-            val channel = NotificationChannel(channelID, name, importance)
-            channel.description = getString(R.string.app_desc)
+    private fun startNavigation(destBeacon: DestinationBeacon) {
+        (application as MainApp).destList = destList
 
-            val notificationManager = getSystemService(NotificationManager::class.java)
-            notificationManager!!.createNotificationChannel(channel)
-        }
+        TTSOutput = "Navigating you to " + destBeacon.name
+        TTSCtrl.speakOut(TTSOutput)
+
+        val nav = Navigator(findUserPos(2), destBeacon.coordinate, Orientation.NORTH)
+        nav.executeFastestPath()
     }
 
-    private fun initialize() {
-        TTSCtrl = (application as MainApp).speech
-
+    private fun initializeListeners() {
+        var azimuthCount = 0
+        var tempAzimuth: Float = 0.toFloat()
         compass = Compass(this)
 
+        val cl = object: CompassListener{
+            override fun onNewAzimuth(azimuth: Float) {
+                //Do something each time azimuth changes
+                azimuthCount++
+                tempAzimuth += azimuth
+                if (azimuthCount == 200) {
+                    tempAzimuth /= azimuthCount
+                    userOrientation = getOrientation(tempAzimuth)
+                    azimuthCount = 0
+                }
+            }
+        }
+
+        compass.compassListener = cl
         mSpeechRecognizerIntent = Intent(RecognizerIntent.ACTION_RECOGNIZE_SPEECH)
         mSpeechRecognizerIntent.putExtra(RecognizerIntent.EXTRA_LANGUAGE_MODEL, RecognizerIntent.LANGUAGE_MODEL_FREE_FORM)
         mSpeechRecognizerIntent.putExtra(RecognizerIntent.EXTRA_CALLING_PACKAGE, this.packageName)
@@ -488,9 +349,10 @@ class MainDestinationsActivity : AppCompatActivity() {
         val sl = object: ShakeListener {
             override fun onShake(count: Int) {
                 //Do shake event here
-                if (count > 2) {
+                if (count > 3) {
                     //Repeat audio
                     Log.d("iGuide", "Shake detected: " + count)
+                    TTSCtrl.speakOut(TTSOutput)
                 }
             }
         }
@@ -522,6 +384,7 @@ class MainDestinationsActivity : AppCompatActivity() {
         override fun onReadyForSpeech(params: Bundle) {
         }
 
+        //Speech to text onResults
         override fun onResults(results: Bundle) {
             val matches = results.getStringArrayList(SpeechRecognizer.RESULTS_RECOGNITION)
             val count = destList.size
@@ -538,9 +401,10 @@ class MainDestinationsActivity : AppCompatActivity() {
                 }
 
                 if (choice != 0) {
-                    var destBeacon: DestinationBeacon = DestinationBeacon("null", 0.0)
+                    var destBeacon = DestinationBeacon("null", 0.0)
                     val dest = viewList[choice].text.toString()
-                    TTSCtrl.speakOut("You have chosen to go to $dest")
+                    TTSOutput = "You have chosen to go to $dest"
+                    TTSCtrl.speakOut(TTSOutput)
 
                     for (i in destList) {
                         if (i.name == dest) {
@@ -548,17 +412,30 @@ class MainDestinationsActivity : AppCompatActivity() {
                             break
                         }
                     }
+
                     //Start navigation to choice
                     if (destBeacon.deviceID != "null") {
-                        val nav = Navigator(findUserPos(), destBeacon.coordinate, Orientation.NORTH)
-                        nav.executeFastestPath()
+                        startNavigation(destBeacon)
                     }
                 } else {
-                    TTSCtrl.speakOut(destOutputString.toString())
+                    TTSOutput = destOutputString.toString()
+                    TTSCtrl.speakOut(TTSOutput)
                 }
             }
         }
 
         override fun onRmsChanged(rmsdB: Float) {}
+    }
+
+    private fun createNotificationChannel() {
+        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
+            val name = getString(R.string.app_name)
+            val importance = NotificationManager.IMPORTANCE_HIGH
+            val channel = NotificationChannel((application as MainApp).channelID, name, importance)
+            channel.description = getString(R.string.app_desc)
+
+            val notificationManager = getSystemService(NotificationManager::class.java)
+            notificationManager!!.createNotificationChannel(channel)
+        }
     }
 }

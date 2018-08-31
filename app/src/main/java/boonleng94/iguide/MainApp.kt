@@ -22,4 +22,6 @@ class MainApp : Application() {
     // You can move it somewhere else, but for sake of simplicity we put it in here.
     var location = Location()
     var speech = TTSController()
+    var channelID = "iGuide"
+    var destList = ArrayList<DestinationBeacon>()
 }

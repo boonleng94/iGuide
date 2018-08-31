@@ -15,7 +15,7 @@ class Navigator(currentPos: Coordinate, destination: Coordinate, orientation: Or
 
     private lateinit var travelCost: Array<DoubleArray>
 
-    private lateinit var neighbourCoordinates: Array<Coordinate>              // F,L,R,B
+    private lateinit var neighbourCoordinates: Array<Coordinate>
     private lateinit var coordsToVisit: ArrayList<Coordinate>
     private lateinit var coordsVisited: ArrayList<Coordinate>
 
@@ -32,15 +32,14 @@ class Navigator(currentPos: Coordinate, destination: Coordinate, orientation: Or
     }
 
     init {
-        for (i in 0..destination.x) {
-            for (j in 0..destination.y) {
+        for (i in 1 until destination.x-1) {
+            for (j in 1 until destination.y-1) {
                travelCost[i][j] = 0.0
             }
         }
 
         coordsToVisit.add(currentPos)
         travelCost[currentPos.x][currentPos.y] = 0.0
-
     }
 
     /**
@@ -71,7 +70,7 @@ class Navigator(currentPos: Coordinate, destination: Coordinate, orientation: Or
     }
     
     /**
-     * Returns the Orientation that the mRouser need to turn to move from current Coordinate to the target Coordinate
+     * Returns the Orientation that the user need to turn to move from current Coordinate to the target Coordinate
      */
     private fun getNextOrientation(userCurrentCoordinate: Coordinate?, userCurrentOrientation: Orientation, targetCoordinate: Coordinate): Orientation {
         return if (userCurrentCoordinate!!.x - targetCoordinate.x > 0) {

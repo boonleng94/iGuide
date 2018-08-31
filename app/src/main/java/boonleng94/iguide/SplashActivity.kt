@@ -18,7 +18,7 @@ import java.util.*
  * You can get those credentials from your Estimote Cloud account :)
  */
 class SplashActivity : AppCompatActivity(){
-    private lateinit var i: TTSController
+    private lateinit var TTSCtrl: TTSController
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
@@ -28,32 +28,9 @@ class SplashActivity : AppCompatActivity(){
         supportActionBar?.hide()
         setContentView(R.layout.activity_splash)
 
-        i = TTSController()
-        i.initialize(applicationContext, Locale.US)
-        (application as MainApp).speech = i
-
-        // Create object for communicating with Estimote cloud.
-        // IMPORTANT - you need to put here your Estimote Cloud credentials.
-        // We daclared them in MainApp.ktlass
-//        val cloudManager = IndoorCloudManagerFactory().create(applicationContext, (application as MainApp).cloudCredentials)
-//
-//        // Launch request for all locations connected to your account.
-//        // If you don't see any - check your cloud account - maybe you should create those locations first?
-//        cloudManager.getLocation("home-h28", object: CloudCallback<Location> {
-//            override fun success(location: Location) {
-//                (application as MainApp).location = location
-//
-//                // If all is fine, go ahead and launch activity with list of your locations :)
-//                //startActivity(Intent(applicationContext, MainIndoorActivity::class.java))
-//            }
-//
-//            override fun failure(serverException: EstimoteCloudException) {
-//                // For the sake of this demo, you need to make sure you have an internet connection and AppID/AppToken set :)
-////                Toast.makeText(this@SplashActivity, "Unable to fetch location data from Estimote" +
-////                        "Please check your internet connection", Toast.LENGTH_LONG).show()
-////                startMainActivity()
-//            }
-//        })
+        TTSCtrl = TTSController()
+        TTSCtrl.initialize(applicationContext, Locale.US)
+        (application as MainApp).speech = TTSCtrl
 
         RequirementsWizardFactory.createEstimoteRequirementsWizard().fulfillRequirements(this,
                 // onRequirementsFulfilled
