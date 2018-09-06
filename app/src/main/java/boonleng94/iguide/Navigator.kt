@@ -1,9 +1,10 @@
 package boonleng94.iguide
 
 import android.util.Log
+import java.io.Serializable
 import java.util.*
 
-data class Coordinate(var x: Int, var y: Int) //Every 0.5m = 1 Unit
+data class Coordinate(var x: Int, var y: Int) : Serializable //Every 0.5m = 1 Unit
 
 data class User(var orientation: Orientation, var currentPos: Coordinate) {
     lateinit var previousPos: Coordinate

@@ -20,20 +20,12 @@
             </intent-filter>
         </activity>
 
-        <activity android:name="boonleng94.iguide.MainIndoorActivity">
+        <activity android:name="boonleng94.iguide.MainDestinationsActivity">
         </activity>
 
-        <activity android:name="boonleng94.iguide.STTTest">
+        <activity android:name="boonleng94.iguide.MainNavigationActivity">
         </activity>
 
-        <activity android:name="boonleng94.iguide.MainCompassActivity">
-        </activity>
-
-        <activity android:name="boonleng94.iguide.MainProximityActivity">
-        </activity>
-
-        <activity android:name="boonleng94.iguide.MainBeaconActivity">
-        </activity>
     </application>
 
     <uses-permission android:name="android.permission.BLUETOOTH" />

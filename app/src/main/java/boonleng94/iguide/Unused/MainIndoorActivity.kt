@@ -1,4 +1,4 @@
-package boonleng94.iguide
+package boonleng94.iguide.Unused
 
 
 import android.app.Notification
@@ -10,6 +10,9 @@ import android.support.v7.app.AppCompatActivity
 
 import android.support.v4.app.NotificationCompat
 import android.util.Log
+import boonleng94.iguide.MainApp
+import boonleng94.iguide.R
+import boonleng94.iguide.TTSController
 
 import com.estimote.indoorsdk.IndoorLocationManagerBuilder
 import com.estimote.indoorsdk_module.algorithm.OnPositionUpdateListener

@@ -1,4 +1,4 @@
-package boonleng94.iguide
+package boonleng94.iguide.Unused
 
 
 import android.app.Activity
@@ -10,6 +10,7 @@ import android.speech.SpeechRecognizer
 import android.view.Menu
 import android.widget.ImageButton
 import android.widget.TextView
+import boonleng94.iguide.R
 
 class STTTest : Activity() {
     private lateinit var txtSpeechInput: TextView

@@ -3,6 +3,7 @@ package boonleng94.iguide
 import android.app.NotificationManager
 import android.content.Intent
 import android.os.Bundle
+import android.os.Handler
 import android.speech.RecognizerIntent
 import android.speech.SpeechRecognizer
 import android.support.v4.app.NotificationCompat
@@ -33,7 +34,12 @@ class MainNavigationActivity: AppCompatActivity(){
     private lateinit var directionIv: ImageView
     private lateinit var destTv: TextView
 
+    private lateinit var nextBeacon: DestinationBeacon
+
     private var TTSOutput = "iGuide"
+
+    private lateinit var destination: DestinationBeacon
+    private lateinit var currentPos: Coordinate
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
@@ -41,7 +47,12 @@ class MainNavigationActivity: AppCompatActivity(){
         directionIv = findViewById(R.id.iv_direction)
         destTv = findViewById(R.id.destination_placeholder)
 
+        destination = intent.getSerializableExtra("destination") as DestinationBeacon
+        currentPos = intent.getSerializableExtra("currentPos") as Coordinate
+
         TTSCtrl = (application as MainApp).speech
+        TTSOutput = "Navigating you to " + destination.name
+        TTSCtrl.speakOut(TTSOutput)
 
         initializeListeners()
 
@@ -58,9 +69,16 @@ class MainNavigationActivity: AppCompatActivity(){
         destList.sortBy {
             it.distance
         }
+
         for (i in destList) {
             queue.add(i)
+
+            if (i == destination) {
+                break
+            }
         }
+
+        nextBeacon = queue.element()
 
         //Build a ProximityObserver for ranging Beacons
         val proxObserver = ProximityObserverBuilder(applicationContext, (application as MainApp).proximityCloudCredentials)
@@ -99,19 +117,78 @@ class MainNavigationActivity: AppCompatActivity(){
         //enter zone, remove, give next instruction
         //find orientation, walk repeat
 
+        //After leaving zone, est. 10+steps enter next zone, if don't have, trilat and re orientate.
+
+        //If skipped zone from B to D (skipped C), drop all till E, go to E.
+
         val destinationZone = ProximityZoneBuilder()
                 .forTag("corridor")
                 .inCustomRange(1.0)
                 .onEnter {
-                    //only nearest beacon
-                    dest ->
-                    val destination = dest.attachments["destination"]
-                    val description = dest.attachments["description"]
-                    Toast.makeText(this, "Entered corridor $destination, description: $description", Toast.LENGTH_SHORT).show()
-                    Log.d("iGuide", "Entered corridor $destination, description: $description")
+                    //only nearest beacon, triggers once upon entry
+                    beacon ->
+                    val dest = beacon.attachments["destination"]
+                    val desc = beacon.attachments["description"]
+
+                    //dest reached
+                    if (beacon.deviceId == destination.deviceID) {
+                        startActivity(Intent(applicationContext, MainDestinationsActivity::class.java))
+                        Toast.makeText(this, "Entered destination $dest, description: $desc", Toast.LENGTH_SHORT).show()
+                        Log.d("iGuide", "Entered destination $dest, description: $desc")
+                    } else if (beacon.deviceId == nextBeacon.deviceID){
+                        //nextBeacon reached
+                        val currCoord = nextBeacon.coordinate
+                        Toast.makeText(this, "Entered beacon $dest, description: $desc", Toast.LENGTH_SHORT).show()
+                        Log.d("iGuide", "Entered beacon $dest, description: $desc")
+                        queue.remove()
+                        nextBeacon = queue.element()
+
+                        var nextOrientation = getNextOrientation(currentPos, userOrientation, nextBeacon.coordinate)
+
+                        while (userOrientation != nextOrientation) {
+                            val dir = getDirectionToTurn(userOrientation, nextOrientation)
+
+                            TTSOutput = "Please turn to your $dir"
+                            TTSCtrl.speakOut(TTSOutput)
+
+                            //Wait for user to turn
+                            Handler().postDelayed({
+                            }, 2000)
+                        }
+
+                        //1m = 2 coordinate units = 3 steps
+                        if (userOrientation == nextOrientation) {
+                            var steps = 0
+                            if (currCoord.x - nextBeacon.coordinate.x !=0) {
+                                steps = ((currCoord.x - nextBeacon.coordinate.x).absoluteValue)/2*3
+                            } else if (currCoord.y - nextBeacon.coordinate.y !=0 ) {
+                                steps = ((currCoord.y - nextBeacon.coordinate.y).absoluteValue)/2*3
+                            }
+
+                            TTSOutput = "Please walk $steps forward"
+                            TTSCtrl.speakOut(TTSOutput)
+                        }
+                    } else if (beacon.deviceId != nextBeacon.deviceID ) {
+                        //check if skipped beacon or wrong beacon
+                        var tempQ = queue
+
+                        //skipped zone
+                        while (beacon.deviceId != nextBeacon.deviceID) {
+                            tempQ.remove()
+                            nextBeacon = queue.element()
+                        }
+
+                        //totally wrong beacon that was not in queue
+                        if (queue.isEmpty()) {
+                            //error occurred, go back MainDest
+                            TTSOutput = "An error has occurred, please choose your destination again"
+                            TTSCtrl.speakOut(TTSOutput)
+                            startActivity(Intent(applicationContext, MainDestinationsActivity::class.java))
+                        }
+                    }
                 }
                 .onExit {
-                    Toast.makeText(this, "Left the corridor", Toast.LENGTH_SHORT).show()
+                    Toast.makeText(this, "Left the beacon", Toast.LENGTH_SHORT).show()
                     Log.d("iGuide", "Exit tag")
 
                 }
@@ -156,6 +233,7 @@ class MainNavigationActivity: AppCompatActivity(){
     override fun onDestroy() {
         proxObsHandler.stop()
         shakeDetector.stop()
+        compass.stop()
         Log.d((application as MainApp).channelID, "MainNavigationActivity destroyed")
         super.onDestroy()
     }
@@ -169,6 +247,48 @@ class MainNavigationActivity: AppCompatActivity(){
             Orientation.SOUTH
         } else {
             Orientation.WEST
+        }
+    }
+
+    private fun getDirectionToTurn(originalOrientation: Orientation, nextOrientation: Orientation): Direction? {
+        when (originalOrientation) {
+            Orientation.NORTH -> when (nextOrientation) {
+                Orientation.SOUTH -> return Direction.BACK
+                Orientation.WEST -> return Direction.LEFT
+                Orientation.EAST -> return Direction.RIGHT
+            }
+            Orientation.SOUTH -> when (nextOrientation) {
+                Orientation.NORTH -> return Direction.BACK
+                Orientation.WEST -> return Direction.RIGHT
+                Orientation.EAST -> return Direction.LEFT
+            }
+            Orientation.EAST -> when (nextOrientation) {
+                Orientation.NORTH -> return Direction.LEFT
+                Orientation.SOUTH -> return Direction.RIGHT
+                Orientation.WEST -> return Direction.BACK
+            }
+            Orientation.WEST -> when (nextOrientation) {
+                Orientation.NORTH -> return Direction.RIGHT
+                Orientation. SOUTH -> return Direction.LEFT
+                Orientation.EAST -> return Direction.BACK
+            }
+        }
+        return null
+    }
+
+    private fun getNextOrientation(userCurrentCoordinate: Coordinate?, userCurrentOrientation: Orientation, targetCoordinate: Coordinate): Orientation {
+        return if (userCurrentCoordinate!!.x - targetCoordinate.x > 0) {
+            Orientation.WEST
+        } else if (targetCoordinate.x - userCurrentCoordinate.x > 0) {
+            Orientation.EAST
+        } else {
+            if (userCurrentCoordinate.y - targetCoordinate.y > 0) {
+                Orientation.SOUTH
+            } else if (targetCoordinate.y - userCurrentCoordinate.y > 0) {
+                Orientation.NORTH
+            } else {
+                userCurrentOrientation
+            }
         }
     }
 
@@ -191,6 +311,7 @@ class MainNavigationActivity: AppCompatActivity(){
         }
 
         compass.compassListener = cl
+        compass.start()
 
         val gl = object: GestureDetector.OnGestureListener {
             override fun onDown(p0: MotionEvent?): Boolean {
@@ -242,7 +363,7 @@ class MainNavigationActivity: AppCompatActivity(){
                 //Do shake event here
                 if (count > 3) {
                     //Repeat audio
-                    Log.d("iGuide", "Shake detected: " + count)
+                    Log.d("iGuide", "Shake detected: $count")
                     TTSCtrl.speakOut(TTSOutput)
                 }
             }

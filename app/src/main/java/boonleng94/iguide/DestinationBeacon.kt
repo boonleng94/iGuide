@@ -1,6 +1,8 @@
 package boonleng94.iguide
 
-data class DestinationBeacon(val deviceID: String, var distance: Double) {
+import java.io.Serializable
+
+data class DestinationBeacon(val deviceID: String, var distance: Double): Serializable{
     lateinit var coordinate: Coordinate
     lateinit var name: String
 

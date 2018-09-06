@@ -5,10 +5,7 @@ import android.os.Bundle
 import android.support.v7.app.AppCompatActivity
 import android.util.Log
 import android.view.Window
-import com.estimote.indoorsdk_module.cloud.CloudCallback
-import com.estimote.indoorsdk_module.cloud.EstimoteCloudException
-import com.estimote.indoorsdk_module.cloud.IndoorCloudManagerFactory
-import com.estimote.indoorsdk_module.cloud.Location
+import boonleng94.iguide.Unused.MainCompassActivity
 import com.estimote.mustard.rx_goodness.rx_requirements_wizard.RequirementsWizardFactory
 import java.util.*
 

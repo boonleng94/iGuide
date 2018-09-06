@@ -1,4 +1,4 @@
-package boonleng94.iguide
+package boonleng94.iguide.Unused
 
 import android.os.Bundle
 import android.support.v4.app.NotificationCompat
@@ -9,6 +9,8 @@ import com.estimote.mustard.rx_goodness.rx_requirements_wizard.RequirementsWizar
 import android.app.NotificationManager
 import android.app.NotificationChannel
 import android.os.Build
+import boonleng94.iguide.MainApp
+import boonleng94.iguide.R
 import com.estimote.proximity_sdk.api.ProximityObserver
 import com.estimote.proximity_sdk.api.ProximityObserverBuilder
 import com.estimote.proximity_sdk.api.ProximityZone

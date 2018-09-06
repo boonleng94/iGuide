@@ -1,7 +1,6 @@
-package boonleng94.iguide
+package boonleng94.iguide.Unused
 
 import android.os.Bundle
-import android.speech.tts.TextToSpeech
 import android.support.v4.view.GestureDetectorCompat
 import android.support.v7.app.AppCompatActivity
 import android.util.Log
@@ -9,12 +8,12 @@ import android.view.GestureDetector
 import android.view.MotionEvent
 import android.widget.ImageView
 import android.widget.TextView
+import boonleng94.iguide.*
 import com.lemmingapex.trilateration.LinearLeastSquaresSolver
 import com.lemmingapex.trilateration.NonLinearLeastSquaresSolver
 import com.lemmingapex.trilateration.TrilaterationFunction
 import org.apache.commons.math3.fitting.leastsquares.LevenbergMarquardtOptimizer
 import org.apache.commons.math3.linear.SingularMatrixException
-import java.util.*
 import kotlin.math.absoluteValue
 
 class MainCompassActivity: AppCompatActivity(), GestureDetector.OnGestureListener, GestureDetector.OnDoubleTapListener {
@@ -112,7 +111,7 @@ class MainCompassActivity: AppCompatActivity(), GestureDetector.OnGestureListene
 
     private fun setupCompass() {
         compass = Compass(this)
-        val cl = object: CompassListener{
+        val cl = object: CompassListener {
             override fun onNewAzimuth(azimuth: Float) {
                 //Do something each time azimuth changes
                 azimuthCount++
