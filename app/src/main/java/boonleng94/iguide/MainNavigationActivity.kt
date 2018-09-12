@@ -4,23 +4,22 @@ import android.app.NotificationManager
 import android.content.Intent
 import android.os.Bundle
 import android.os.Handler
-import android.speech.RecognizerIntent
-import android.speech.SpeechRecognizer
 import android.support.v4.app.NotificationCompat
 import android.support.v4.view.GestureDetectorCompat
 import android.support.v7.app.AppCompatActivity
 import android.util.Log
 import android.view.GestureDetector
-import android.view.Gravity
 import android.view.MotionEvent
 import android.widget.ImageView
 import android.widget.TextView
 import android.widget.Toast
+
 import com.estimote.proximity_sdk.api.ProximityObserver
 import com.estimote.proximity_sdk.api.ProximityObserverBuilder
 import com.estimote.proximity_sdk.api.ProximityZoneBuilder
-import kotlinx.android.synthetic.main.activity_dest.*
+
 import java.util.*
+
 import kotlin.math.absoluteValue
 
 class MainNavigationActivity: AppCompatActivity(){
@@ -33,26 +32,35 @@ class MainNavigationActivity: AppCompatActivity(){
 
     private lateinit var directionIv: ImageView
     private lateinit var destTv: TextView
+    private lateinit var passbyTv: TextView
 
     private lateinit var nextBeacon: DestinationBeacon
+    private lateinit var destination: DestinationBeacon
+    private lateinit var currentPos: Coordinate
 
     private var TTSOutput = "iGuide"
 
-    private lateinit var destination: DestinationBeacon
-    private lateinit var currentPos: Coordinate
+    private val debugTAG = "MainNavigationActivity"
+
+    private var doubleTap = false
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
         setContentView(R.layout.activity_nav)
         directionIv = findViewById(R.id.iv_direction)
-        destTv = findViewById(R.id.destination_placeholder)
+        destTv = findViewById(R.id.tv_destination)
+        passbyTv = findViewById(R.id.passby_alert_placeholder)
 
         destination = intent.getSerializableExtra("destination") as DestinationBeacon
         currentPos = intent.getSerializableExtra("currentPos") as Coordinate
 
+        destTv.text = destination.name
+
         TTSCtrl = (application as MainApp).speech
         TTSOutput = "Navigating you to " + destination.name
         TTSCtrl.speakOut(TTSOutput)
+
+        Log.d(debugTAG, "currentPos: $currentPos")
 
         initializeListeners()
 
@@ -86,7 +94,7 @@ class MainNavigationActivity: AppCompatActivity(){
                 .withScannerInForegroundService(notif)
                 .onError { /* handle errors here */
                     throwable ->
-                    Log.d("iGuide", "error msg: $throwable")
+                    Log.d(debugTAG, "error msg: $throwable")
                 }
                 .build()
 
@@ -99,11 +107,11 @@ class MainNavigationActivity: AppCompatActivity(){
                     obstacle ->
                     val instructions = obstacle.attachments["instructions"]
                     Toast.makeText(this, "Encountered obstacle, instruction: $instructions", Toast.LENGTH_SHORT).show()
-                    Log.d("iGuide", "Encountered obstacle, instruction: $instructions")
+                    Log.d(debugTAG, "Encountered obstacle, instruction: $instructions")
                 }
                 .onExit {
                     Toast.makeText(this, "Left the obstacle", Toast.LENGTH_SHORT).show()
-                    Log.d("iGuide", "Exit obstacle")
+                    Log.d(debugTAG, "Exit obstacle")
                 }
                 .onContextChange {
                 }
@@ -127,19 +135,27 @@ class MainNavigationActivity: AppCompatActivity(){
                 .onEnter {
                     //only nearest beacon, triggers once upon entry
                     beacon ->
-                    val dest = beacon.attachments["destination"]
-                    val desc = beacon.attachments["description"]
+                    val name = beacon.attachments["name"]
+                    val description = beacon.attachments["description"]
 
                     //dest reached
-                    if (beacon.deviceId == destination.deviceID) {
+                    if (beacon.deviceId.equals(destination.deviceID, true)) {
+                        TTSOutput = "You have reached your destination!"
+                        TTSCtrl.speakOut(TTSOutput)
+
+                        proxObsHandler.stop()
+                        shakeDetector.stop()
+                        compass.stop()
+
                         startActivity(Intent(applicationContext, MainDestinationsActivity::class.java))
-                        Toast.makeText(this, "Entered destination $dest, description: $desc", Toast.LENGTH_SHORT).show()
-                        Log.d("iGuide", "Entered destination $dest, description: $desc")
-                    } else if (beacon.deviceId == nextBeacon.deviceID){
+
+                        Toast.makeText(this, "Entered destination $name, description: $description", Toast.LENGTH_SHORT).show()
+                        Log.d(debugTAG, "Entered destination $name, description: $description")
+                    } else if (beacon.deviceId.equals(nextBeacon.deviceID, true)){
                         //nextBeacon reached
                         val currCoord = nextBeacon.coordinate
-                        Toast.makeText(this, "Entered beacon $dest, description: $desc", Toast.LENGTH_SHORT).show()
-                        Log.d("iGuide", "Entered beacon $dest, description: $desc")
+                        Toast.makeText(this, "Entered beacon $name, description: $description", Toast.LENGTH_SHORT).show()
+                        Log.d(debugTAG, "Entered beacon $name, description: $description")
                         queue.remove()
                         nextBeacon = queue.element()
 
@@ -148,8 +164,19 @@ class MainNavigationActivity: AppCompatActivity(){
                         while (userOrientation != nextOrientation) {
                             val dir = getDirectionToTurn(userOrientation, nextOrientation)
 
-                            TTSOutput = "Please turn to your $dir"
-                            TTSCtrl.speakOut(TTSOutput)
+                            if (dir == Direction.LEFT) {
+                                directionIv.setImageDrawable(resources.getDrawable(R.drawable.turn_left, null))
+                                TTSOutput = "Please turn to your left..."
+                                TTSCtrl.speakOut(TTSOutput)
+                            } else if (dir == Direction.RIGHT) {
+                                directionIv.setImageDrawable(resources.getDrawable(R.drawable.turn_right, null))
+                                TTSOutput = "Please turn to your right..."
+                                TTSCtrl.speakOut(TTSOutput)
+                            } else if (dir == Direction.BACK) {
+                                TTSOutput = "You are moving astray from your destination... Please turn around or double tap to change destination..."
+                                TTSCtrl.speakOut(TTSOutput)
+                                directionIv.setImageDrawable(resources.getDrawable(R.drawable.turn_around, null))
+                            }
 
                             //Wait for user to turn
                             Handler().postDelayed({
@@ -165,7 +192,7 @@ class MainNavigationActivity: AppCompatActivity(){
                                 steps = ((currCoord.y - nextBeacon.coordinate.y).absoluteValue)/2*3
                             }
 
-                            TTSOutput = "Please walk $steps forward"
+                            TTSOutput = "Please move $steps forward"
                             TTSCtrl.speakOut(TTSOutput)
                         }
                     } else if (beacon.deviceId != nextBeacon.deviceID ) {
@@ -183,47 +210,37 @@ class MainNavigationActivity: AppCompatActivity(){
                             //error occurred, go back MainDest
                             TTSOutput = "An error has occurred, please choose your destination again"
                             TTSCtrl.speakOut(TTSOutput)
+
+                            proxObsHandler.stop()
+                            shakeDetector.stop()
+                            compass.stop()
+
                             startActivity(Intent(applicationContext, MainDestinationsActivity::class.java))
                         }
                     }
                 }
                 .onExit {
-                    Toast.makeText(this, "Left the beacon", Toast.LENGTH_SHORT).show()
-                    Log.d("iGuide", "Exit tag")
+                    beacon ->
+                    val dest = beacon.attachments["name"]
+                    TTSOutput = "You have just walked pass $dest"
+                    TTSCtrl.speakOut(TTSOutput)
+                    passbyTv.text = TTSOutput
 
+                    if (doubleTap) {
+                        TTSOutput = "Destination changed to $dest"
+                        TTSCtrl.speakOut(TTSOutput)
+
+                        destination = DestinationBeacon(beacon.deviceId, 1.0)
+
+                        //exit is in 1m range, so turn back and walk 1m to go back
+                        TTSOutput = "Please turn around and move 3 forward"
+                        TTSCtrl.speakOut(TTSOutput)
+                    }
+
+                    Toast.makeText(this, "Left the beacon", Toast.LENGTH_SHORT).show()
+                    Log.d(debugTAG, "Exit tag")
                 }
                 .onContextChange {
-                    //get all beacons
-                    allDests ->
-                    if (!allDests.isEmpty()) {
-                        allDests.iterator().forEach { dest ->
-                            val destDeviceID = dest.deviceId
-                            val destination = dest.attachments["destination"]!!
-                            val coordinate = dest.attachments["coordinate"]!!
-                            //val description = dest.attachments["description"]
-
-//                            if (destList.isNotEmpty()) {
-//                                for (i in destList) {
-//                                    if (i.deviceID == destDeviceID) {
-//                                        i.coordinate = Coordinate(coordinate.split(',')[0].toInt(), coordinate.split(',')[1].toInt())
-//                                        i.name = destination
-//
-//                                        val tvDest = TextView(this)
-//                                        tvDest.gravity = Gravity.CENTER_HORIZONTAL
-//                                        tvDest.textSize = 24f
-//                                        tvDest.isClickable = false
-//                                        tvDest.text = i.name
-//
-//                                        if (!viewList.contains(tvDest)) {
-//                                            viewList.add(tvDest)
-//                                            sv_linear_layout.addView(tvDest)
-//                                        }
-//
-//                                    }
-//                                }
-//                            }
-                        }
-                    }
                 }
                 .build()
 
@@ -234,7 +251,7 @@ class MainNavigationActivity: AppCompatActivity(){
         proxObsHandler.stop()
         shakeDetector.stop()
         compass.stop()
-        Log.d((application as MainApp).channelID, "MainNavigationActivity destroyed")
+        Log.d(debugTAG, "MainNavigationActivity destroyed")
         super.onDestroy()
     }
 
@@ -343,7 +360,8 @@ class MainNavigationActivity: AppCompatActivity(){
 
         val dtl = object: GestureDetector.OnDoubleTapListener {
             override fun onDoubleTap(p0: MotionEvent?): Boolean {
-                Log.d("iGuide", "DOUBLE TAP DETECTED")
+                doubleTap = true
+                Log.d(debugTAG, "DOUBLE TAP DETECTED")
                 return true
             }
 
@@ -363,11 +381,13 @@ class MainNavigationActivity: AppCompatActivity(){
                 //Do shake event here
                 if (count > 3) {
                     //Repeat audio
-                    Log.d("iGuide", "Shake detected: $count")
+                    Log.d(debugTAG, "Shake detected: $count")
                     TTSCtrl.speakOut(TTSOutput)
                 }
             }
         }
         shakeDetector.shakeListener = sl
+
+        shakeDetector.start()
     }
 }

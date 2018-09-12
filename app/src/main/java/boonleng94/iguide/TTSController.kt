@@ -7,7 +7,7 @@ import android.util.Log
 import java.util.Locale
 
 class TTSController {
-    private lateinit var talk: TextToSpeech
+    lateinit var talk: TextToSpeech
 
     fun initialize(context: Context, locale: Locale) {
         talk = TextToSpeech(context, TextToSpeech.OnInitListener { status ->

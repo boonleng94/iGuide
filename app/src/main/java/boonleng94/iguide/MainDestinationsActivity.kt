@@ -9,6 +9,7 @@ import android.os.Handler
 import android.speech.RecognitionListener
 import android.speech.RecognizerIntent
 import android.speech.SpeechRecognizer
+import android.speech.tts.UtteranceProgressListener
 import android.support.v4.app.NotificationCompat
 import android.support.v4.view.GestureDetectorCompat
 import android.support.v7.app.AppCompatActivity
@@ -23,28 +24,22 @@ import com.estimote.proximity_sdk.api.ProximityObserver
 import com.estimote.proximity_sdk.api.ProximityObserverBuilder
 import com.estimote.proximity_sdk.api.ProximityZoneBuilder
 
-//proximity using scanning_plugin, legacy sdk using scanning_sdk
-import com.estimote.internal_plugins_api.scanning.ScanHandler
-import com.estimote.scanning_plugin.api.EstimoteBluetoothScannerFactory
-
 import com.lemmingapex.trilateration.LinearLeastSquaresSolver
 import com.lemmingapex.trilateration.NonLinearLeastSquaresSolver
 import com.lemmingapex.trilateration.TrilaterationFunction
 
 import kotlinx.android.synthetic.main.activity_dest.*
+import kotlin.math.roundToInt
+
 import org.apache.commons.math3.fitting.leastsquares.LevenbergMarquardtOptimizer
 import org.apache.commons.math3.linear.SingularMatrixException
-import java.util.*
-import kotlin.math.absoluteValue
 
-import kotlin.math.roundToInt
+import java.util.*
 
 class MainDestinationsActivity : AppCompatActivity() {
     private lateinit var destObsHandler: ProximityObserver.Handler
-    private lateinit var scanHandle: ScanHandler
     private lateinit var shakeDetector: ShakeDetector
     private lateinit var gestureDetector: GestureDetectorCompat
-    private lateinit var viewList: ArrayList<TextView>
     private lateinit var TTSCtrl: TTSController
     private lateinit var compass: Compass
     private lateinit var userOrientation: Orientation
@@ -53,10 +48,14 @@ class MainDestinationsActivity : AppCompatActivity() {
     private lateinit var mSpeechRecognitionListener: SpeechRecognitionListener
 
     private var destList = ArrayList<DestinationBeacon>()
+    private var viewList = ArrayList<TextView>()
+    private var displayList = ArrayList<String>()
 
     private var destOutputString = StringBuilder("Where would you like to go? ")
 
     private var TTSOutput = "iGuide"
+
+    private val debugTAG = "MainDestinationsActivity"
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
@@ -65,8 +64,10 @@ class MainDestinationsActivity : AppCompatActivity() {
         createNotificationChannel()
 
         TTSCtrl = (application as MainApp).speech
-        TTSOutput = "Please wait as I find destinations"
+        TTSOutput = "Please wait as I find destinations..."
         TTSCtrl.speakOut(TTSOutput)
+
+        destList = (application as MainApp).destList
 
         initializeListeners()
 
@@ -77,44 +78,13 @@ class MainDestinationsActivity : AppCompatActivity() {
                 .setPriority(NotificationManager.IMPORTANCE_HIGH)
                 .build()
 
-        //1. Scan for Beacons with Estimote Location (Monitoring) packets, get distances, add to destList
-        scanHandle = EstimoteBluetoothScannerFactory(applicationContext)
-                .getSimpleScanner()
-                .estimoteLocationScan()
-                .withLowLatencyPowerMode()
-                .withOnPacketFoundAction { packet ->
-                    val beacon = DestinationBeacon(packet.deviceId, Math.pow(10.0, ((packet.measuredPower - packet.rssi) / 20.0)))
-
-                    //Math.pow(10.0, (packet.rssi - packet.measuredPower) / -20)
-
-                    if (!destList.contains(beacon)) {
-                        destList.add(beacon)
-                    } else if (destList.contains(beacon)) {
-                        val index = destList.indexOf(beacon)
-
-                        if ((destList[index].distance - beacon.distance).absoluteValue > 1.0) {
-                            destList[index].distance = beacon.distance
-                        }
-                    }
-
-                    if (destList.isNotEmpty()) {
-                        destList.sortBy {
-                            it.distance
-                        }
-                    }
-                }
-                .withOnScanErrorAction {
-                    Log.e("iGuide", "Scan failed: $it")
-                }
-                .start()
-
         //Build a ProximityObserver for ranging Beacons
         val destProxObserver = ProximityObserverBuilder(applicationContext, (application as MainApp).proximityCloudCredentials)
                 .withLowLatencyPowerMode()
                 .withScannerInForegroundService(notif)
                 .onError { /* handle errors here */
                     throwable ->
-                    Log.d("iGuide", "error msg: $throwable")
+                    Log.d(debugTAG, "error msg: $throwable")
                 }
                 .build()
 
@@ -125,44 +95,48 @@ class MainDestinationsActivity : AppCompatActivity() {
                 .inCustomRange(20.0)
                 .onEnter {
                     //only nearest beacon
-                    dest ->
-                    val destination = dest.attachments["destination"]
-                    val description = dest.attachments["description"]
-                    Toast.makeText(this, "Entered corridor $destination, description: $description", Toast.LENGTH_SHORT).show()
-                    Log.d("iGuide", "Entered corridor $destination, description: $description")
+                    beacon ->
+                    val name = beacon.attachments["name"]
+                    val description = beacon.attachments["description"]
+
+                    Toast.makeText(this, "Entered destination beacon $name, description: $description", Toast.LENGTH_SHORT).show()
+                    Log.d(debugTAG, "Entered destination beacon $name, description: $description")
                 }
                 .onExit {
-                    Toast.makeText(this, "Left the corridor", Toast.LENGTH_SHORT).show()
-                    Log.d("iGuide", "Exit tag")
+                    Toast.makeText(this, "Left the destination beacon", Toast.LENGTH_SHORT).show()
+                    Log.d(debugTAG, "Exit destination beacon")
 
                 }
                 .onContextChange {
                     //get all beacons
                     allDests ->
                     if (!allDests.isEmpty()) {
-                        allDests.iterator().forEach { dest ->
-                            val destDeviceID = dest.deviceId
-                            val destination = dest.attachments["destination"]!!
-                            val coordinate = dest.attachments["coordinate"]!!
-                            //val description = dest.attachments["description"]
+                        allDests.iterator().forEach { beacon ->
+                            val destDeviceID = beacon.deviceId
+                            val name = beacon.attachments["name"]!!
+                            val coordinate = beacon.attachments["coordinate"]!!
+                            val description = beacon.attachments["description"]!!
+
+                            Log.d(debugTAG, "onContextChange - Device IDs: $destDeviceID")
 
                             if (destList.isNotEmpty()) {
                                 for (i in destList) {
-                                    if (i.deviceID == destDeviceID) {
-                                        i.coordinate = Coordinate(coordinate.split(',')[0].toInt(), coordinate.split(',')[1].toInt())
-                                        i.name = destination
+                                    if (i.deviceID.equals(destDeviceID, true)) {
+                                        i.coordinate = Coordinate(coordinate.split(',')[0].trim().toInt(), coordinate.split(',')[1].trim().toInt())
+                                        i.name = name
+                                        i.description = description
 
-                                        val tvDest = TextView(this)
-                                        tvDest.gravity = Gravity.CENTER_HORIZONTAL
-                                        tvDest.textSize = 24f
-                                        tvDest.isClickable = false
-                                        tvDest.text = i.name
+                                        if (!displayList.contains(i.name)) {
+                                            val tvDest = TextView(this)
+                                            tvDest.gravity = Gravity.CENTER_HORIZONTAL
+                                            tvDest.textSize = 24f
+                                            tvDest.isClickable = false
+                                            tvDest.text = i.name
 
-                                        if (!viewList.contains(tvDest)) {
+                                            displayList.add(i.name)
                                             viewList.add(tvDest)
                                             sv_linear_layout.addView(tvDest)
                                         }
-
                                     }
                                 }
                             }
@@ -173,19 +147,33 @@ class MainDestinationsActivity : AppCompatActivity() {
 
         destObsHandler = destProxObserver.startObserving(corridorZone)
 
-        //After scanning for beacons for 10s
+        //After scanning for beacons for 5s
         Handler().postDelayed({
-            scanHandle.stop()
-            destObsHandler.stop()
-            readDestinations()
-        }, 10000)
+            if (viewList.isNotEmpty()) {
+                destObsHandler.stop()
+                readDestinations()
+            } else {
+                TTSCtrl.speakOut("No beacons found! Eye Guide is currently not usable. ")
+                val homeIntent = Intent(Intent.ACTION_MAIN)
+                homeIntent.addCategory(Intent.CATEGORY_HOME)
+                homeIntent.flags = Intent.FLAG_ACTIVITY_CLEAR_TOP
+
+                destObsHandler.stop()
+                shakeDetector.stop()
+                compass.stop()
+                mSpeechRecognizer.destroy()
+
+                startActivity(homeIntent)
+            }
+        }, 5000)
     }
 
     override fun onDestroy() {
-        scanHandle.stop()
         destObsHandler.stop()
         shakeDetector.stop()
-        Log.d((application as MainApp).channelID, "MainDestinationsActivity destroyed")
+        compass.stop()
+        mSpeechRecognizer.destroy()
+        Log.d(debugTAG, "MainDestinationsActivity destroyed")
         super.onDestroy()
     }
 
@@ -196,10 +184,31 @@ class MainDestinationsActivity : AppCompatActivity() {
             index++
         }
 
+        var doneSpeech = false
+
         TTSOutput = destOutputString.toString()
         TTSCtrl.speakOut(TTSOutput)
 
-        mSpeechRecognizer.startListening(mSpeechRecognizerIntent)
+        val TTSUPL = object: UtteranceProgressListener() {
+            override fun onDone(utteranceId: String?) {
+                doneSpeech = true
+            }
+            override fun onError(utteranceId: String?) {
+
+            }
+
+            override fun onStart(utteranceId: String?) {
+            }
+        }
+
+        TTSCtrl.talk.setOnUtteranceProgressListener(TTSUPL)
+
+        while (true) {
+            if (doneSpeech) {
+                mSpeechRecognizer.startListening(mSpeechRecognizerIntent)
+                break
+            }
+        }
     }
 
     private fun getOrientation(azimuth: Float): Orientation {
@@ -224,6 +233,11 @@ class MainDestinationsActivity : AppCompatActivity() {
     //NEED TO THINK OF A LOGIC TO DO SO
 
     private fun findUserPos(): Coordinate {
+        destList.removeIf {
+            item ->
+            item.coordinate == Coordinate(-1, -1)
+        }
+
         var deltaLimit = 2
         var size = destList.size
         var posList = Array(size) {_ -> doubleArrayOf(0.0, 0.0)}
@@ -235,14 +249,13 @@ class MainDestinationsActivity : AppCompatActivity() {
             }
 
             for (i in destList) {
+                size--
                 var pos = doubleArrayOf(i.coordinate.x.toDouble(), i.coordinate.y.toDouble())
 
                 distanceList[size] = i.distance
                 posList[size] = pos
 
-                size--
-
-                if (size == -1) {
+                if (size == 0) {
                     break
                 }
             }
@@ -330,12 +343,13 @@ class MainDestinationsActivity : AppCompatActivity() {
     }
 
     private fun startNavigation(destBeacon: DestinationBeacon) {
-        (application as MainApp).destList = destList
-
         TTSOutput = "Navigating you to " + destBeacon.name
         TTSCtrl.speakOut(TTSOutput)
 
+        destObsHandler.stop()
+        shakeDetector.stop()
         compass.stop()
+        mSpeechRecognizer.destroy()
 
 //        val nav = Navigator(findUserPos(2), destBeacon.coordinate, Orientation.NORTH)
 //        nav.executeFastestPath()
@@ -406,7 +420,7 @@ class MainDestinationsActivity : AppCompatActivity() {
 
         val dtl = object: GestureDetector.OnDoubleTapListener {
             override fun onDoubleTap(p0: MotionEvent?): Boolean {
-                Log.d("iGuide", "DOUBLE TAP DETECTED")
+                Log.d(debugTAG, "DOUBLE TAP DETECTED")
                 return true
             }
 
@@ -426,12 +440,14 @@ class MainDestinationsActivity : AppCompatActivity() {
                 //Do shake event here
                 if (count > 3) {
                     //Repeat audio
-                    Log.d("iGuide", "Shake detected: $count")
+                    Log.d(debugTAG, "Shake detected: $count")
                     TTSCtrl.speakOut(TTSOutput)
                 }
             }
         }
         shakeDetector.shakeListener = sl
+
+        shakeDetector.start()
     }
 
     private inner class SpeechRecognitionListener : RecognitionListener {
@@ -447,6 +463,7 @@ class MainDestinationsActivity : AppCompatActivity() {
         }
 
         override fun onError(error: Int) {
+            Log.d(debugTAG, "STT error code: " + error)
             mSpeechRecognizer.startListening(mSpeechRecognizerIntent)
         }
 
@@ -465,24 +482,26 @@ class MainDestinationsActivity : AppCompatActivity() {
             val count = destList.size
             var choice: Int = 0
 
+            Log.d(debugTAG, "STT results: " + matches.toString())
+
             if (matches.isNotEmpty()) {
                 for (i in 1..count) {
                     val value = intMap.getValue(i)
 
-                    if (matches.contains(value)) {
+                    if (matches.contains(value) || matches.contains(i.toString())) {
                         choice = i
                         break
                     }
                 }
 
                 if (choice != 0) {
-                    var destBeacon = DestinationBeacon("null", 0.0)
-                    val dest = viewList[choice].text.toString()
+                    var destBeacon = DestinationBeacon("Beacon", 0.0)
+                    val dest = displayList[choice-1]
                     TTSOutput = "You have chosen to go to $dest"
                     TTSCtrl.speakOut(TTSOutput)
 
                     for (i in destList) {
-                        if (i.name == dest) {
+                        if (i.name.equals(dest, true)) {
                             destBeacon = i
                             break
                         }
