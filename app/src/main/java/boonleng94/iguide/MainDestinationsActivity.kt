@@ -55,6 +55,8 @@ class MainDestinationsActivity : AppCompatActivity() {
 
     private var TTSOutput = "iGuide"
 
+    private var doneSpeech = false
+
     private val debugTAG = "MainDestinationsActivity"
 
     override fun onCreate(savedInstanceState: Bundle?) {
@@ -172,6 +174,7 @@ class MainDestinationsActivity : AppCompatActivity() {
         destObsHandler.stop()
         shakeDetector.stop()
         compass.stop()
+        mSpeechRecognizer.stopListening()
         mSpeechRecognizer.destroy()
         Log.d(debugTAG, "MainDestinationsActivity destroyed")
         super.onDestroy()
@@ -179,32 +182,33 @@ class MainDestinationsActivity : AppCompatActivity() {
 
     private fun readDestinations() {
         var index = 1
+
+        // // var doneSpeech = false
+
         for (i in viewList) {
             destOutputString.append(". $index. ${i.text}. ")
             index++
         }
-
-        var doneSpeech = false
-
-        TTSOutput = destOutputString.toString()
-        TTSCtrl.speakOut(TTSOutput)
 
         val TTSUPL = object: UtteranceProgressListener() {
             override fun onDone(utteranceId: String?) {
                 doneSpeech = true
             }
             override fun onError(utteranceId: String?) {
-
             }
-
             override fun onStart(utteranceId: String?) {
+                doneSpeech = false
             }
         }
 
         TTSCtrl.talk.setOnUtteranceProgressListener(TTSUPL)
 
+        TTSOutput = destOutputString.toString()
+        TTSCtrl.speakOut(TTSOutput)
+
         while (true) {
             if (doneSpeech) {
+                doneSpeech = false
                 mSpeechRecognizer.startListening(mSpeechRecognizerIntent)
                 break
             }
@@ -272,6 +276,16 @@ class MainDestinationsActivity : AppCompatActivity() {
         var index = 0
         var res = DoubleArray(2)
         var count = destList.size
+
+        posList.forEach {
+            it ->
+            Log.d(debugTAG, "posList: " + it.toString())
+        }
+        distanceList.forEach {
+            it ->
+            Log.d(debugTAG, "distanceList: " + it.toString())
+        }
+
 
         while (count != 3) {
             var tempPosList = Arrays.copyOfRange(posList, index, posList.size)
@@ -342,10 +356,7 @@ class MainDestinationsActivity : AppCompatActivity() {
         return Coordinate(res[0].roundToInt(), res[1].roundToInt())
     }
 
-    private fun startNavigation(destBeacon: DestinationBeacon) {
-        TTSOutput = "Navigating you to " + destBeacon.name
-        TTSCtrl.speakOut(TTSOutput)
-
+    private fun startNavigation(destBeacon: DestinationBeacon, output: String) {
         destObsHandler.stop()
         shakeDetector.stop()
         compass.stop()
@@ -357,6 +368,7 @@ class MainDestinationsActivity : AppCompatActivity() {
         val intent = Intent(applicationContext, MainNavigationActivity::class.java)
         intent.putExtra("destination", destBeacon)
         intent.putExtra("currentPos", findUserPos())
+        intent.putExtra("TTSOutput", output)
         startActivity(intent)
     }
 
@@ -463,8 +475,28 @@ class MainDestinationsActivity : AppCompatActivity() {
         }
 
         override fun onError(error: Int) {
+            // var doneSpeech = false
+
             Log.d(debugTAG, "STT error code: " + error)
-            mSpeechRecognizer.startListening(mSpeechRecognizerIntent)
+            val TTSUPL = object: UtteranceProgressListener() {
+                override fun onDone(utteranceId: String?) {
+                    doneSpeech = true
+                }
+                override fun onError(utteranceId: String?) {
+                }
+                override fun onStart(utteranceId: String?) {
+                }
+            }
+            TTSCtrl.talk.setOnUtteranceProgressListener(TTSUPL)
+            TTSCtrl.speakOut("Failed to detect any sound. Please try again")
+
+            while (true) {
+                if (doneSpeech) {
+                    doneSpeech = false
+                    mSpeechRecognizer.startListening(mSpeechRecognizerIntent)
+                    break
+                }
+            }
         }
 
         override fun onEvent(eventType: Int, params: Bundle) {
@@ -481,6 +513,7 @@ class MainDestinationsActivity : AppCompatActivity() {
             val matches = results.getStringArrayList(SpeechRecognizer.RESULTS_RECOGNITION)
             val count = destList.size
             var choice: Int = 0
+            // var doneSpeech = false
 
             Log.d(debugTAG, "STT results: " + matches.toString())
 
@@ -497,8 +530,6 @@ class MainDestinationsActivity : AppCompatActivity() {
                 if (choice != 0) {
                     var destBeacon = DestinationBeacon("Beacon", 0.0)
                     val dest = displayList[choice-1]
-                    TTSOutput = "You have chosen to go to $dest"
-                    TTSCtrl.speakOut(TTSOutput)
 
                     for (i in destList) {
                         if (i.name.equals(dest, true)) {
@@ -509,11 +540,50 @@ class MainDestinationsActivity : AppCompatActivity() {
 
                     //Start navigation to choice
                     if (destBeacon.deviceID != "null") {
-                        startNavigation(destBeacon)
+                        val output = "You have chosen to go to choice $choice, $dest ..."
+
+                        startNavigation(destBeacon, output)
                     }
                 } else {
-                    TTSOutput = destOutputString.toString()
-                    TTSCtrl.speakOut(TTSOutput)
+                    val TTSUPL = object: UtteranceProgressListener() {
+                        override fun onDone(utteranceId: String?) {
+                            doneSpeech = true
+                        }
+                        override fun onError(utteranceId: String?) {
+                        }
+                        override fun onStart(utteranceId: String?) {
+                        }
+                    }
+                    TTSCtrl.talk.setOnUtteranceProgressListener(TTSUPL)
+                    TTSCtrl.speakOut("Failed to recognize a choice. Please try again")
+
+                    while (true) {
+                        if (doneSpeech) {
+                            doneSpeech = false
+                            mSpeechRecognizer.startListening(mSpeechRecognizerIntent)
+                            break
+                        }
+                    }
+                }
+            } else {
+                val TTSUPL = object: UtteranceProgressListener() {
+                    override fun onDone(utteranceId: String?) {
+                        doneSpeech = true
+                    }
+                    override fun onError(utteranceId: String?) {
+                    }
+                    override fun onStart(utteranceId: String?) {
+                    }
+                }
+                TTSCtrl.talk.setOnUtteranceProgressListener(TTSUPL)
+                TTSCtrl.speakOut("No sound detected. Please try again")
+
+                while (true) {
+                    if (doneSpeech) {
+                        doneSpeech = false
+                        mSpeechRecognizer.startListening(mSpeechRecognizerIntent)
+                        break
+                    }
                 }
             }
         }

@@ -89,7 +89,7 @@
         app:layout_constraintRight_toLeftOf="@+id/right_guideline"
         app:layout_constraintTop_toBottomOf="@+id/tv_destination"
         app:layout_constraintVertical_bias="0.507"
-        app:srcCompat="@drawable/turn_around" />
+        app:srcCompat="@drawable/move_forward" />
 
     <!--dynamic-->
     <TextView
