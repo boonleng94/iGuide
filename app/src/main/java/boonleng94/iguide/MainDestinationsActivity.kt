@@ -24,19 +24,13 @@ import com.estimote.proximity_sdk.api.ProximityObserver
 import com.estimote.proximity_sdk.api.ProximityObserverBuilder
 import com.estimote.proximity_sdk.api.ProximityZoneBuilder
 
-import com.lemmingapex.trilateration.LinearLeastSquaresSolver
-import com.lemmingapex.trilateration.NonLinearLeastSquaresSolver
-import com.lemmingapex.trilateration.TrilaterationFunction
-
 import kotlinx.android.synthetic.main.activity_dest.*
-import kotlin.math.roundToInt
-
-import org.apache.commons.math3.fitting.leastsquares.LevenbergMarquardtOptimizer
-import org.apache.commons.math3.linear.SingularMatrixException
 
 import java.util.*
 
 class MainDestinationsActivity : AppCompatActivity() {
+    private val debugTAG = "MainDestinationsActivity"
+
     private lateinit var destObsHandler: ProximityObserver.Handler
     private lateinit var shakeDetector: ShakeDetector
     private lateinit var gestureDetector: GestureDetectorCompat
@@ -53,11 +47,9 @@ class MainDestinationsActivity : AppCompatActivity() {
 
     private var destOutputString = StringBuilder("Where would you like to go? ")
 
-    private var TTSOutput = "iGuide"
+    private var TTSOutput = "Eye Guide"
 
     private var doneSpeech = false
-
-    private val debugTAG = "MainDestinationsActivity"
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
@@ -124,7 +116,7 @@ class MainDestinationsActivity : AppCompatActivity() {
                             if (destList.isNotEmpty()) {
                                 for (i in destList) {
                                     if (i.deviceID.equals(destDeviceID, true)) {
-                                        i.coordinate = Coordinate(coordinate.split(',')[0].trim().toInt(), coordinate.split(',')[1].trim().toInt())
+                                        i.coordinate = Coordinate(coordinate.split(',')[0].trim().toDouble(), coordinate.split(',')[1].trim().toDouble())
                                         i.name = name
                                         i.description = description
 
@@ -233,9 +225,6 @@ class MainDestinationsActivity : AppCompatActivity() {
         compass.stop()
         mSpeechRecognizer.destroy()
 
-//        val nav = Navigator(findUserPos(2), destBeacon.coordinate, Orientation.NORTH)
-//        nav.executeFastestPath()
-
         val intent = Intent(applicationContext, MainNavigationActivity::class.java)
         intent.putExtra("destination", destBeacon)
         intent.putExtra("currentPos", Navigator().findUserPos(destList))
@@ -250,7 +239,7 @@ class MainDestinationsActivity : AppCompatActivity() {
         compass = Compass(this)
 
         val cl = object: CompassListener{
-            override fun onNewAzimuth(azimuth: Float) {
+            override fun onAzimuthChange(azimuth: Float) {
                 //Do something each time azimuth changes
                 azimuthCount++
                 tempAzimuth += azimuth
@@ -335,7 +324,7 @@ class MainDestinationsActivity : AppCompatActivity() {
     }
 
     private inner class SpeechRecognitionListener : RecognitionListener {
-        val intMap: HashMap<Int, String> = hashMapOf(1 to "one", 2 to "two", 3 to "three", 4 to "four", 5 to "five", 6 to "six", 7 to "7", 8 to "eight")
+        val intMap: HashMap<Int, String> = hashMapOf(1 to "one", 2 to "two", 3 to "three", 4 to "four", 5 to "five", 6 to "six", 7 to "7", 8 to "eight", 9 to "nine", 10 to "ten", 11 to "eleven")
 
         override fun onBeginningOfSpeech() {
         }
@@ -347,8 +336,6 @@ class MainDestinationsActivity : AppCompatActivity() {
         }
 
         override fun onError(error: Int) {
-            // var doneSpeech = false
-
             Log.d(debugTAG, "STT error code: " + error)
             val TTSUPL = object: UtteranceProgressListener() {
                 override fun onDone(utteranceId: String?) {

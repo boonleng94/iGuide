@@ -4,35 +4,28 @@ import android.Manifest
 import android.content.Intent
 import android.content.pm.PackageManager
 import android.os.Bundle
-import android.os.Handler
 import android.support.v4.app.ActivityCompat
 import android.support.v7.app.AppCompatActivity
 import android.util.Log
 import android.view.Window
-import com.estimote.internal_plugins_api.scanning.ScanHandler
 
+import com.estimote.internal_plugins_api.scanning.ScanHandler
 import com.estimote.mustard.rx_goodness.rx_requirements_wizard.RequirementsWizardFactory
 import com.estimote.scanning_plugin.api.EstimoteBluetoothScannerFactory
 
 import java.util.*
-import kotlin.math.absoluteValue
 
-/**
- * Simple splash screen to load the data from cloud.
- * Make sure to initialize EstimoteSDK with your APP ID and APP TOKEN in {@link MainApp} class.
- * You can get those credentials from your Estimote Cloud account :)
- */
 class SplashActivity : AppCompatActivity(){
+    private val debugTAG = "SplashActivity"
+
     private lateinit var TTSCtrl: TTSController
     private lateinit var scanHandle: ScanHandler
 
-    private var destList = ArrayList<DestinationBeacon>()
-
-    private val debugTAG = "SplashActivity"
-
-    private val REQUEST_RECORD_AUDIO_PERMISSION = 200
+    private var beaconList = ArrayList<DestinationBeacon>()
+    private var noUpdateCount = 0
 
     // Requesting permission to RECORD_AUDIO
+    private val REQUEST_RECORD_AUDIO_PERMISSION = 200
     private var permissionToRecordAccepted = false
     private var permissions: Array<String> = arrayOf(Manifest.permission.RECORD_AUDIO)
 
@@ -63,65 +56,74 @@ class SplashActivity : AppCompatActivity(){
 
         ActivityCompat.requestPermissions(this, permissions, REQUEST_RECORD_AUDIO_PERMISSION)
 
+
         RequirementsWizardFactory.createEstimoteRequirementsWizard().fulfillRequirements(this,
                 // onRequirementsFulfilled
                 {
-                    //1. Scan for Beacons with Estimote Location (Monitoring) packets, get distances, add to destList
+                    Log.d(debugTAG, "Requirements fulfilled, MainDestinationsActivity launched")
+
+                    //1. Scan for Beacons with Estimote Location (Monitoring) packets, get distances, add to beaconList
                     scanHandle = EstimoteBluetoothScannerFactory(applicationContext)
                             .getSimpleScanner()
                             .estimoteLocationScan()
                             .withLowLatencyPowerMode()
                             .withOnPacketFoundAction { packet ->
-                                val beacon = DestinationBeacon(packet.deviceId, Math.pow(10.0, ((packet.measuredPower - packet.rssi) / 20.0)))
-                                //Math.pow(10.0, (packet.rssi - packet.measuredPower) / -20)
-
-                                if (!destList.contains(beacon)) {
-                                    destList.add(beacon)
-                                    Log.d(debugTAG, "new destlist beacon: " + beacon.deviceID + ", " + beacon.distance)
-                                } else if (destList.contains(beacon)) {
-                                    val index = destList.indexOf(beacon)
-
-                                    //MUST DO SOMETHING TO GET MORE ACCURATE DISTANCES
-                                    if ((destList[index].distance - beacon.distance).absoluteValue > 1.0) {
-                                        destList[index].distance = beacon.distance
-                                        Log.d(debugTAG, "new updated destlist beacon: " + beacon.deviceID + ", " + beacon.distance)
+                                if (noUpdateCount == 200) {
+                                    if (beaconList.isNotEmpty()) {
+                                        scanHandle.stop()
+                                        (application as MainApp).destList = beaconList
+                                        startActivity(Intent(applicationContext, MainDestinationsActivity::class.java))
+                                    } else {
+                                        scanHandle.stop()
+                                        TTSCtrl.speakOut("No beacons found! Eye Guide is currently not usable. ")
+                                        val homeIntent = Intent(Intent.ACTION_MAIN)
+                                        homeIntent.addCategory(Intent.CATEGORY_HOME)
+                                        homeIntent.flags = Intent.FLAG_ACTIVITY_CLEAR_TOP
+                                        startActivity(homeIntent)
                                     }
                                 }
 
-                                if (destList.isNotEmpty()) {
-                                    destList.sortBy {
+                                val beacon = DestinationBeacon(packet.deviceId, Math.pow(10.0, ((packet.measuredPower - packet.rssi) / 20.0)))
+                                //Math.pow(10.0, (packet.rssi - packet.measuredPower) / -20)
+
+                                Log.d(debugTAG, "For logging - Beacon DeviceID: " + beacon.deviceID + ", Distance: " + beacon.distance)
+
+                                if (!beaconList.contains(beacon)) {
+                                    beaconList.add(beacon)
+                                    Log.d(debugTAG, "Added to beaconList: " + beacon.deviceID + ", " + beacon.distance)
+                                } else if (beaconList.contains(beacon)) {
+                                    val index = beaconList.indexOf(beacon)
+
+                                    //Always take lower bound reading above 1.0m
+                                    //Reason is it will never be below 1.0m, as the beacons will be placed at above head level,
+                                    //average distance from beacon to phone will definitely be more than 1.0m
+                                    if (beaconList[index].distance > beacon.distance && beacon.distance > 1.0) {
+                                        noUpdateCount = 0
+                                        beaconList[index].distance = beacon.distance
+                                        Log.d(debugTAG, "Updated beaconList beacon: " + beacon.deviceID + ", " + beacon.distance)
+                                    } else {
+                                        noUpdateCount++
+                                    }
+                                }
+
+                                if (beaconList.isNotEmpty()) {
+                                    beaconList.sortBy {
                                         it.distance
                                     }
                                 }
                             }
                             .withOnScanErrorAction {
-                                Log.e(debugTAG, "Scan failed: $it")
+                                Log.e(debugTAG, "Bluetooth Scan failed: $it")
                             }
                             .start()
-
-                    Handler().postDelayed({
-                        if (destList.isNotEmpty()) {
-                            scanHandle.stop()
-                            (application as MainApp).destList = destList
-                            startActivity(Intent(applicationContext, MainDestinationsActivity::class.java))
-                        } else {
-                            TTSCtrl.speakOut("No beacons found! Eye Guide is currently not usable. ")
-                            val homeIntent = Intent(Intent.ACTION_MAIN)
-                            homeIntent.addCategory(Intent.CATEGORY_HOME)
-                            homeIntent.flags = Intent.FLAG_ACTIVITY_CLEAR_TOP
-                            startActivity(homeIntent)
-                        }
-                    }, 5000)
-
-                    Log.d("iGuide", "Requirements fulfilled, MainDestinationsActivity launched")
                 },
                 // onRequirementsMissing
                 { requirements ->
-                    Log.d("iGuide", "requirements missing: $requirements")
+                    Log.d(debugTAG, "Requirements not fulfilled: $requirements")
                 }
                 // onError
         ) { throwable ->
-            Log.d("iGuide", "requirements error: $throwable")
+            Log.d(debugTAG, "Requirements error: $throwable")
         }
     }
 }

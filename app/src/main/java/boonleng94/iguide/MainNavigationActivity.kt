@@ -13,16 +13,11 @@ import android.view.MotionEvent
 import android.widget.ImageView
 import android.widget.TextView
 import android.widget.Toast
-import com.estimote.internal_plugins_api.scanning.ScanHandler
 
 import com.estimote.proximity_sdk.api.ProximityObserver
 import com.estimote.proximity_sdk.api.ProximityObserverBuilder
 import com.estimote.proximity_sdk.api.ProximityZoneBuilder
 import com.estimote.scanning_plugin.api.EstimoteBluetoothScannerFactory
-import com.lemmingapex.trilateration.LinearLeastSquaresSolver
-import com.lemmingapex.trilateration.NonLinearLeastSquaresSolver
-import com.lemmingapex.trilateration.TrilaterationFunction
-import org.apache.commons.math3.fitting.leastsquares.LevenbergMarquardtOptimizer
 
 import java.util.*
 import kotlin.collections.ArrayList
@@ -31,6 +26,8 @@ import kotlin.math.absoluteValue
 import kotlin.math.roundToInt
 
 class MainNavigationActivity: AppCompatActivity(){
+    private val debugTAG = "MainNavigationActivity"
+
     private lateinit var proxObsHandler: ProximityObserver.Handler
     private lateinit var shakeDetector: ShakeDetector
     private lateinit var gestureDetector: GestureDetectorCompat
@@ -48,9 +45,7 @@ class MainNavigationActivity: AppCompatActivity(){
 
     private var inBeacon = false
 
-    private var TTSOutput = "iGuide"
-
-    private val debugTAG = "MainNavigationActivity"
+    private var TTSOutput = "Eye Guide"
 
     private var doubleTap = false
 
@@ -134,10 +129,10 @@ class MainNavigationActivity: AppCompatActivity(){
         if (userOrientation == nextOrientation) {
             var xSteps = 0
             var ySteps = 0
-            if (currCoord.x - nextBeacon.coordinate.x != 0) {
-                xSteps = ((currCoord.x - nextBeacon.coordinate.x).absoluteValue)/2*3
-            } else if (currCoord.y - nextBeacon.coordinate.y !=0 ) {
-                ySteps = ((currCoord.y - nextBeacon.coordinate.y).absoluteValue)/2*3
+            if (currCoord.x - nextBeacon.coordinate.x != 0.0) {
+                xSteps = (((currCoord.x - nextBeacon.coordinate.x).absoluteValue)/2*3).roundToInt()
+            } else if (currCoord.y - nextBeacon.coordinate.y != 0.0 ) {
+                ySteps = (((currCoord.y - nextBeacon.coordinate.y).absoluteValue)/2*3).roundToInt()
             }
 
             if (xSteps != 0) {
@@ -274,10 +269,10 @@ class MainNavigationActivity: AppCompatActivity(){
                         //1m = 2 coordinate units = 3 steps
                         if (userOrientation == nextOrientation) {
                             var steps = 0
-                            if (currCoord.x - nextBeacon.coordinate.x !=0) {
-                                steps = ((currCoord.x - nextBeacon.coordinate.x).absoluteValue)/2*3
-                            } else if (currCoord.y - nextBeacon.coordinate.y !=0 ) {
-                                steps = ((currCoord.y - nextBeacon.coordinate.y).absoluteValue)/2*3
+                            if (currCoord.x - nextBeacon.coordinate.x != 0.0) {
+                                steps = (((currCoord.x - nextBeacon.coordinate.x).absoluteValue)/2*3).roundToInt()
+                            } else if (currCoord.y - nextBeacon.coordinate.y != 0.0 ) {
+                                steps = (((currCoord.y - nextBeacon.coordinate.y).absoluteValue)/2*3).roundToInt()
                             }
 
                             TTSOutput = "Please move $steps steps forward"
@@ -418,10 +413,10 @@ class MainNavigationActivity: AppCompatActivity(){
         if (userOrientation == nextOrientation) {
             var xSteps = 0
             var ySteps = 0
-            if (currCoord.x - nextBeacon.coordinate.x != 0) {
-                xSteps = ((currCoord.x - nextBeacon.coordinate.x).absoluteValue)/2*3
-            } else if (currCoord.y - nextBeacon.coordinate.y !=0 ) {
-                ySteps = ((currCoord.y - nextBeacon.coordinate.y).absoluteValue)/2*3
+            if (currCoord.x - nextBeacon.coordinate.x != 0.0) {
+                xSteps = (((currCoord.x - nextBeacon.coordinate.x).absoluteValue)/2*3).roundToInt()
+            } else if (currCoord.y - nextBeacon.coordinate.y != 0.0 ) {
+                ySteps = (((currCoord.y - nextBeacon.coordinate.y).absoluteValue)/2*3).roundToInt()
             }
 
             if (xSteps != 0) {
@@ -520,7 +515,7 @@ class MainNavigationActivity: AppCompatActivity(){
         compass = Compass(this)
 
         val cl = object: CompassListener{
-            override fun onNewAzimuth(azimuth: Float) {
+            override fun onAzimuthChange(azimuth: Float) {
                 //Do something each time azimuth changes
                 azimuthCount++
                 tempAzimuth += azimuth

@@ -7,7 +7,7 @@ import android.hardware.SensorEventListener
 import android.hardware.SensorManager
 
 interface CompassListener {
-    fun onNewAzimuth(azimuth: Float)
+    fun onAzimuthChange(azimuth: Float)
 }
 
 class Compass(context: Context): SensorEventListener {
@@ -23,15 +23,12 @@ class Compass(context: Context): SensorEventListener {
     private var haveMagn = false
     private var haveGrav = false
 
-    private val mGravity = FloatArray(3)
-    private val mGeomagnetic = FloatArray(3)
-    private val R = FloatArray(9)
-    private val I = FloatArray(9)
-    private val orien = FloatArray(3)
-
+    private val gravity = FloatArray(3)
+    private val magnetic = FloatArray(3)
+    private val constantR = FloatArray(9)
+    private val constantI = FloatArray(9)
 
     private var azimuth: Float = 0.toFloat()
-    private var azimuthFix: Float = 0.toFloat()
 
     init {
         accSensor = sensorManager.getDefaultSensor(Sensor.TYPE_ACCELEROMETER)
@@ -53,47 +50,43 @@ class Compass(context: Context): SensorEventListener {
         sensorManager.unregisterListener(this)
     }
 
-    fun resetAzimuthFix() {
-        azimuthFix = 0f
-    }
-
     override fun onSensorChanged(event: SensorEvent) {
         val alpha = 0.97f
 
         synchronized(this) {
 //            if (event.sensor.type == Sensor.TYPE_ROTATION_VECTOR) {
 //                // calculate the rotation matrix
-//                SensorManager.getRotationMatrixFromVector(R, event.values );
+//                SensorManager.getRotationMatrixFromVector(constantR, event.values );
 //                // get the azimuth value (orientation[0]) in degree
-//                var azimuth = ((Math.toDegrees(SensorManager.getOrientation(R, orien)[0].toDouble()).toFloat()) + 360f) % 360
+//                var azimuth = ((Math.toDegrees(SensorManager.getOrientation(constantR, orien)[0].toDouble()).toFloat()) + 360f) % 360
 //                }
 //            }
 
             if (event.sensor.type == Sensor.TYPE_GRAVITY) {
-                mGravity[0] = alpha * mGravity[0] + (1 - alpha) * event.values[0]
-                mGravity[1] = alpha * mGravity[1] + (1 - alpha) * event.values[1]
-                mGravity[2] = alpha * mGravity[2] + (1 - alpha) * event.values[2]
+                gravity[0] = alpha * gravity[0] + (1 - alpha) * event.values[0]
+                gravity[1] = alpha * gravity[1] + (1 - alpha) * event.values[1]
+                gravity[2] = alpha * gravity[2] + (1 - alpha) * event.values[2]
             }
 
             if (event.sensor.type == Sensor.TYPE_ACCELEROMETER) {
-                mGravity[0] = alpha * mGravity[0] + (1 - alpha) * event.values[0]
-                mGravity[1] = alpha * mGravity[1] + (1 - alpha) * event.values[1]
-                mGravity[2] = alpha * mGravity[2] + (1 - alpha) * event.values[2]
+                gravity[0] = alpha * gravity[0] + (1 - alpha) * event.values[0]
+                gravity[1] = alpha * gravity[1] + (1 - alpha) * event.values[1]
+                gravity[2] = alpha * gravity[2] + (1 - alpha) * event.values[2]
             }
 
             if (event.sensor.type == Sensor.TYPE_MAGNETIC_FIELD) {
-                mGeomagnetic[0] = alpha * mGeomagnetic[0] + (1 - alpha) * event.values[0]
-                mGeomagnetic[1] = alpha * mGeomagnetic[1] + (1 - alpha) * event.values[1]
-                mGeomagnetic[2] = alpha * mGeomagnetic[2] + (1 - alpha) * event.values[2]
+                magnetic[0] = alpha * magnetic[0] + (1 - alpha) * event.values[0]
+                magnetic[1] = alpha * magnetic[1] + (1 - alpha) * event.values[1]
+                magnetic[2] = alpha * magnetic[2] + (1 - alpha) * event.values[2]
             }
 
-            val success = SensorManager.getRotationMatrix(R, I, mGravity, mGeomagnetic)
+            val success = SensorManager.getRotationMatrix(constantR, constantI, gravity, magnetic)
             if (success) {
                 val orientation = FloatArray(3)
-                SensorManager.getOrientation(R, orientation)
-                azimuth = Math.toDegrees(orientation[0].toDouble()).toFloat() // orientation
-                azimuth = (azimuth + azimuthFix + 360f) % 360
-                compassListener.onNewAzimuth(azimuth)
+                SensorManager.getOrientation(constantR, orientation)
+                azimuth = Math.toDegrees(orientation[0].toDouble()).toFloat()
+                azimuth = (azimuth + 360f) % 360
+                compassListener.onAzimuthChange(azimuth)
             }
         }
     }
