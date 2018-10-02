@@ -5,48 +5,78 @@ import boonleng94.iguide.*
 import java.util.*
 import kotlin.math.roundToInt
 
-class NavigatorBackup() {
-    private lateinit var currentPos: Coordinate
+class NavigatorBackup(currentPos: Coordinate, currentOrientation: Orientation, destination: Coordinate, destList: ArrayList<DestinationBeacon>) {
+    var currentPos = currentPos
+    val destination = destination
+    var currentOrientation = currentOrientation
+    var destList = destList
 
-    private lateinit var parentCoordinates: HashMap<Coordinate, Coordinate>
+    private var parentCoordinates = HashMap<Coordinate, Coordinate>()
 
-    private lateinit var travelCost: Array<DoubleArray>
+    private lateinit var travelCost: Array<IntArray>
 
-    private lateinit var coordsToVisit: ArrayList<Coordinate>
-    private lateinit var coordsVisited: ArrayList<Coordinate>
-
-    private lateinit var destination: Coordinate
-    private lateinit var currentOrientation: Orientation
-
-    private var destList = ArrayList<DestinationBeacon>()
-
+    private var coordsToVisit = ArrayList<Coordinate>()
+    private var coordsVisited = ArrayList<Coordinate>()
     private var outputString = StringBuilder("MOVE ")
 
-    //destList = (application as MainApp).destList
+    private lateinit var neighbourCoordinates: Array<Coordinate>
 
     companion object {
         private val LOG_TAG = "NAVIGATOR BACKUP"
         private const val MOVEMENT_COST = 1
         private const val TURNING_COST = 3
+        private const val MAX_COST = 99999
     }
 
-    init {
+    fun initialize() {
+        destList.removeIf {
+            item ->
+            item.coordinate == Coordinate(-1.0, -1.0)
+        }
+
+        neighbourCoordinates = Array(4, {Coordinate(0.0,0.0)})
+
+        var maxX = destList[0].coordinate.x
+        var maxY = destList[0].coordinate.y
+
+        for (i in destList) {
+            if (i.coordinate.x > maxX) {
+                maxX = i.coordinate.x
+            }
+            if (i.coordinate.y > maxY) {
+                maxY = i.coordinate.y
+            }
+        }
+        travelCost = Array(maxX.toInt(), { IntArray(maxY.toInt()) })
+
         for (i in 1 until (destination.x-1).roundToInt()) {
             for (j in 1 until (destination.y-1).roundToInt()) {
-                travelCost[i][j] = 0.0
+                travelCost[i][j] = MAX_COST
+            }
+        }
+
+        for (i in 1 until (destination.x-1).roundToInt()) {
+            for (j in 1 until (destination.y-1).roundToInt()) {
                 for (d in destList) {
-                    coordsToVisit.add(d.coordinate)
+                    if (i == d.coordinate.x.toInt()) {
+                        travelCost[i][j] = 0
+                    }
+
+                    if (j == d.coordinate.y.toInt()) {
+                        travelCost[i][j] = 0
+                    }
                 }
             }
         }
+
         coordsToVisit.add(currentPos)
-        travelCost[currentPos.x.roundToInt()][currentPos.y.roundToInt()] = 0.0
+        travelCost[currentPos.x.roundToInt()][currentPos.y.roundToInt()] = 0
     }
 
     /**
      * Returns true if the given coordinates are within the Arena boundaries
      */
-    private fun checkValidCoordinates(y: Int, x: Int): Boolean {
+    private fun checkValidCoordinates(y: Double, x: Double): Boolean {
         return y >= 0 && x >= 0 && y < destination.y && x < destination.x
     }
 
@@ -183,18 +213,61 @@ class NavigatorBackup() {
 
             // If the Goal cell is in the array of visited Coordinates - a path to the Goal cell has been found, find the fastest path
             if (coordsVisited.contains(destination)) {
-                var temp = destination
+                var temp: Coordinate? = destination
 
                 while (true) {
                     shortestPathStack.push(temp)
 
-                    temp = parentCoordinates[temp]!!
+                    temp = parentCoordinates[temp]
 
                     if (temp == null) {
                         break
                     }
                 }
                 return calcFastestPath(shortestPathStack, destination)
+            }
+
+            //Log.i(LOG_TAG, "Current cell: " + currentPos.x + " " + currentPos.y);
+
+            // Store the neighbour cells of the current Coordinate into the array (Up, down, left, right) - null if the respective neighbour cell is an obstacle
+            // Up neighbour cell
+            if (checkValidCoordinates(currentPos.y + 1, currentPos.x)) {
+                neighbourCoordinates[0] = Coordinate(currentPos.x, currentPos.y + 1)
+            }
+            // Down neighbour cell
+            if (checkValidCoordinates(currentPos.y - 1, currentPos.x)) {
+                neighbourCoordinates[1] = Coordinate(currentPos.x, currentPos.y - 1)
+            }
+            // Left neighbour cell
+            if (checkValidCoordinates(currentPos.y, currentPos.x - 1)) {
+                neighbourCoordinates[2] = Coordinate(currentPos.x - 1, currentPos.y)
+            }
+            // Right neighbour cell
+            if (checkValidCoordinates(currentPos.y, currentPos.x + 1)) {
+                neighbourCoordinates[3] = Coordinate(currentPos.x + 1, currentPos.y)
+            }
+
+            // For-loop to iterate through the neighbour Coordinates and update the travel cost of each Coordinate
+            for (i in neighbourCoordinates.indices) {
+                if (neighbourCoordinates[i] != null) {
+                    // The neighbour cell has already been visited previously
+                    if (coordsVisited.contains(neighbourCoordinates[i])) {
+                        continue
+                    }
+
+                    if (!coordsToVisit.contains(neighbourCoordinates[i])) {
+                        parentCoordinates.put(neighbourCoordinates[i], currentPos)
+                        travelCost[neighbourCoordinates[i].x.toInt()][neighbourCoordinates[i].y.toInt()] = travelCost[currentPos.x.toInt()][currentPos.y.toInt()] + getMoveCost(currentPos, neighbourCoordinates[i], currentOrientation).toInt()
+                        coordsToVisit.add(neighbourCoordinates[i])
+                    } else {
+                        val currentCost = travelCost[neighbourCoordinates[i].x.toInt()][neighbourCoordinates[i].y.toInt()]
+                        val updatedCost = travelCost[currentPos.x.toInt()][currentPos.y.toInt()] + getMoveCost(currentPos, neighbourCoordinates[i], currentOrientation)
+                        if (updatedCost < currentCost) {
+                            travelCost[neighbourCoordinates[i].x.toInt()][neighbourCoordinates[i].y.toInt()] = updatedCost.toInt()
+                            parentCoordinates.put(neighbourCoordinates[i], currentPos)
+                        }
+                    }
+                }
             }
         } while (!coordsToVisit.isEmpty())
 

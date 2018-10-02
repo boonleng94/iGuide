@@ -18,6 +18,42 @@ data class Coordinate(var x: Double, var y: Double) : Serializable //Every 0.5m 
 class Navigator {
     private val debugTAG = "Navigator"
 
+    fun findNextNearest(source: Coordinate, destList: ArrayList<DestinationBeacon>): DestinationBeacon {
+        //Not useful beacons
+        destList.removeIf {
+            item ->
+            item.coordinate == Coordinate(-1.0, -1.0)
+        }
+
+        val tree = KDTree(destList.size)
+
+        for (i in destList) {
+            Log.d(debugTAG, "destList Point: " + i.coordinate.x + ", " + i.coordinate.y)
+            val point = DoubleArray(2)
+            point[0] = i.coordinate.x
+            point[1] = i.coordinate.y
+
+            tree.add(point)
+        }
+
+        var start = DoubleArray(2)
+        start[0] = source.x
+        start[1] = source.y
+
+        var nextPoint = tree.find_nearest(start)
+        var nextCoord = Coordinate(nextPoint.x[0], nextPoint.x[1])
+
+        Log.d(debugTAG, "Start: " + start[0] + ", " + start[1])
+        Log.d(debugTAG, "nextNearest: $nextCoord")
+
+        for (i in destList) {
+            if (nextCoord == i.coordinate) {
+                return i
+            }
+        }
+
+        return DestinationBeacon("Beacon", 0)
+    }
     //1m = 2 coordinate units = 3 steps
     fun findShortestPath(source: Coordinate, dest: Coordinate, destList: ArrayList<DestinationBeacon>, queue: Queue<DestinationBeacon>): Queue<DestinationBeacon> {
         //Not useful beacons
