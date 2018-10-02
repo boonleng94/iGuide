@@ -49,6 +49,10 @@ class MainNavigationActivity: AppCompatActivity(){
 
     private var doubleTap = false
 
+    private val nav = Navigator()
+    private lateinit var nextOrientation: Orientation
+    private var handler = Handler()
+
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
         setContentView(R.layout.activity_nav)
@@ -59,16 +63,12 @@ class MainNavigationActivity: AppCompatActivity(){
         destination = intent.getSerializableExtra("destination") as DestinationBeacon
         currentPos = intent.getSerializableExtra("currentPos") as Coordinate
         userOrientation = intent.getSerializableExtra("currentOrientation") as Orientation
-        TTSOutput = intent.getSerializableExtra("TTSOutput") as String
-
         TTSCtrl = (application as MainApp).speech
-        TTSCtrl.speakOut(TTSOutput)
 
         destTv.text = destination.name
 
         TTSOutput = "Navigating you to " + destination.name
-
-        Log.d(debugTAG, "currentPos: $currentPos")
+        TTSCtrl.speakOut(TTSOutput)
 
         initializeListeners()
 
@@ -81,93 +81,98 @@ class MainNavigationActivity: AppCompatActivity(){
 
         val destList = (application as MainApp).destList
 
-        var queue: Queue<DestinationBeacon> = LinkedList<DestinationBeacon>()
         destList.sortBy {
             it.distance
         }
 
-        for (i in destList) {
-            queue.add(i)
-
-            if (i == destination) {
-                break
-            }
-        }
-
-        nextBeacon = queue.element()
-
         //before ranging, navigate to nextBeacon (very first destination)
-        val currCoord = currentPos
+        nextBeacon = destList[0]
 
-        Log.d(debugTAG, "userOrientation: $userOrientation")
+        nextOrientation = nav.getNextOrientation(currentPos, userOrientation, nextBeacon.coordinate)
 
-        val nextOrientation = getNextOrientation(currentPos, userOrientation, nextBeacon.coordinate)
+        Toast.makeText(this, "Your current position: $currentPos" , Toast.LENGTH_SHORT).show()
 
-        while (userOrientation != nextOrientation) {
-            val dir = getDirectionToTurn(userOrientation, nextOrientation)
+        val threadForBeaconNav = object: Runnable {
+            override fun run() {
+                Log.d(debugTAG, "currentPos: $currentPos")
+                Log.d(debugTAG, "currentOrientation: $userOrientation")
+                Log.d(debugTAG, "nextBeacon Coords: " + nextBeacon.coordinate)
+                Log.d(debugTAG, "nextOrientation: $nextOrientation")
 
-            if (dir == Direction.LEFT) {
-                directionIv.setImageDrawable(resources.getDrawable(R.drawable.turn_left, null))
-                TTSOutput = "Please turn to your left..."
-                TTSCtrl.speakOut(TTSOutput)
-            } else if (dir == Direction.RIGHT) {
-                directionIv.setImageDrawable(resources.getDrawable(R.drawable.turn_right, null))
-                TTSOutput = "Please turn to your right..."
-                TTSCtrl.speakOut(TTSOutput)
-            } else if (dir == Direction.BACK) {
-                TTSOutput = "You are moving astray from your destination... Please turn around or double tap to change destination..."
-                TTSCtrl.speakOut(TTSOutput)
-                directionIv.setImageDrawable(resources.getDrawable(R.drawable.turn_around, null))
-            }
+                if (userOrientation != nextOrientation) {
+                    var dir = nav.getDirectionToTurn(userOrientation, nextOrientation)
+                    Log.d(debugTAG, "direction: $dir")
 
-            //Wait for user to turn
-            Handler().postDelayed({
-            }, 2000)
-        }
+                    if (dir == Direction.LEFT) {
+                        directionIv.setImageDrawable(resources.getDrawable(R.drawable.turn_left, null))
+                        TTSOutput = "Please turn to your left..."
+                        TTSCtrl.speakOut(TTSOutput)
+                    } else if (dir == Direction.RIGHT) {
+                        directionIv.setImageDrawable(resources.getDrawable(R.drawable.turn_right, null))
+                        TTSOutput = "Please turn to your right..."
+                        TTSCtrl.speakOut(TTSOutput)
+                    } else if (dir == Direction.BACK) {
+                        TTSOutput = "Please turn around to your back..."
+                        TTSCtrl.speakOut(TTSOutput)
+                        directionIv.setImageDrawable(resources.getDrawable(R.drawable.turn_around, null))
+                    }
 
-        //1m = 2 coordinate units = 3 steps
-        if (userOrientation == nextOrientation) {
-            var xSteps = 0
-            var ySteps = 0
-            if (currCoord.x - nextBeacon.coordinate.x != 0.0) {
-                xSteps = (((currCoord.x - nextBeacon.coordinate.x).absoluteValue)/2*3).roundToInt()
-            } else if (currCoord.y - nextBeacon.coordinate.y != 0.0 ) {
-                ySteps = (((currCoord.y - nextBeacon.coordinate.y).absoluteValue)/2*3).roundToInt()
-            }
+                    handler.postDelayed(this, 5000)
+                } else {
+                    var xSteps = 0
+                    var ySteps = 0
+                    var delayX: Long = 1500
+                    var delayY: Long = 1500
 
-            if (xSteps != 0) {
-                TTSOutput = "Please move $xSteps steps forward"
-                TTSCtrl.speakOut(TTSOutput)
-                Handler().postDelayed({
-                }, 5000)
-            } else if (ySteps !=0 ) {
-                val nextOrientation = getNextOrientation(currentPos, userOrientation, nextBeacon.coordinate)
-                val dir = getDirectionToTurn(userOrientation, nextOrientation)
+                    if (currentPos.x - nextBeacon.coordinate.x != 0.0) {
+                        xSteps = (((currentPos.x - nextBeacon.coordinate.x).absoluteValue)/2*3).roundToInt()
+                        delayX *= xSteps
+                    }
 
-                if (dir == Direction.LEFT) {
-                    directionIv.setImageDrawable(resources.getDrawable(R.drawable.turn_left, null))
-                    TTSOutput = "Please turn to your left..."
-                    TTSCtrl.speakOut(TTSOutput)
-                } else if (dir == Direction.RIGHT) {
-                    directionIv.setImageDrawable(resources.getDrawable(R.drawable.turn_right, null))
-                    TTSOutput = "Please turn to your right..."
-                    TTSCtrl.speakOut(TTSOutput)
-                } else if (dir == Direction.BACK) {
-                    TTSOutput = "You are moving astray from your destination... Please turn around or double tap to change destination..."
-                    TTSCtrl.speakOut(TTSOutput)
-                    directionIv.setImageDrawable(resources.getDrawable(R.drawable.turn_around, null))
+                    if (currentPos.y - nextBeacon.coordinate.y != 0.0) {
+                        ySteps = (((currentPos.y - nextBeacon.coordinate.y).absoluteValue) / 2 * 3).roundToInt()
+                        delayY *= ySteps
+                    }
+
+                    if (xSteps != 0) {
+                        TTSOutput = "Please move $xSteps steps forward"
+                        TTSCtrl.speakOut(TTSOutput)
+
+                        Handler().postDelayed({
+                            xSteps = 0
+                            //after delay, reach x steps
+                            userOrientation = nextOrientation
+                            currentPos = Coordinate(nextBeacon.coordinate.x, currentPos.y)
+                            nextOrientation = nav.getNextOrientation(currentPos, userOrientation, nextBeacon.coordinate)
+
+                            handler.postDelayed(this, 5000)
+                        }, delayX)
+                    } else if (ySteps != 0) {
+                        TTSOutput = "Please move $ySteps steps forward"
+                        TTSCtrl.speakOut(TTSOutput)
+
+                        Handler().postDelayed({
+                            //after delay, reach y steps
+                            ySteps = 0
+                            currentPos = nextBeacon.coordinate
+
+                            if (!inBeacon) {
+                                //still not in beacon
+                                //reNavigate()
+                            } else {
+
+                            }
+                        }, delayY)
+                    }
                 }
-
-                TTSOutput = "Please move $ySteps steps forward"
-                TTSCtrl.speakOut(TTSOutput)
-                Handler().postDelayed({
-                }, 5000)
-            }
-
-            if (!inBeacon) {
-                reNavigate()
             }
         }
+
+        handler.post(threadForBeaconNav)
+
+        //after reaching first beacon
+        var queue = Navigator().findShortestPath(nextBeacon.coordinate, destination.coordinate, destList, LinkedList<DestinationBeacon>())
+        nextBeacon = queue.element()
 
         //Build a ProximityObserver for ranging Beacons
         val proxObserver = ProximityObserverBuilder(applicationContext, (application as MainApp).proximityCloudCredentials)
@@ -179,27 +184,7 @@ class MainNavigationActivity: AppCompatActivity(){
                 }
                 .build()
 
-        //Build A ProximityZone to find Beacons with tag 'obstacle' within 1m distance
-        val obstacleZone = ProximityZoneBuilder()
-                .forTag("obstacle")
-                .inCustomRange(1.0)
-                .onEnter {
-                    //only nearest beacon
-                    obstacle ->
-                    val instructions = obstacle.attachments["instructions"]
-                    Toast.makeText(this, "Encountered obstacle, instruction: $instructions", Toast.LENGTH_SHORT).show()
-                    Log.d(debugTAG, "Encountered obstacle, instruction: $instructions")
-                }
-                .onExit {
-                    Toast.makeText(this, "Left the obstacle", Toast.LENGTH_SHORT).show()
-                    Log.d(debugTAG, "Exit obstacle")
-                }
-                .onContextChange {
-                }
-                .build()
-
         //Build A ProximityZone to find Beacons with tag 'corridor' within 1m distance
-
         //proximity zone observers, reach the first beacon at queue (.element), dequeue (.remove), give next instructions
         //think of how to do instructions
         //find orientation, walk
@@ -207,11 +192,10 @@ class MainNavigationActivity: AppCompatActivity(){
         //find orientation, walk repeat
 
         //After leaving zone, est. 10+steps enter next zone, if don't have, trilat and re orientate.
-
         //If skipped zone from B to D (skipped C), drop all till E, go to E.
 
         val destinationZone = ProximityZoneBuilder()
-                .forTag("corridor")
+                .forTag("home")
                 .inCustomRange(1.0)
                 .onEnter {
                     //only nearest beacon, triggers once upon entry
@@ -236,48 +220,50 @@ class MainNavigationActivity: AppCompatActivity(){
                         Log.d(debugTAG, "Entered destination $name, description: $description")
                     } else if (beacon.deviceId.equals(nextBeacon.deviceID, true)){
                         //nextBeacon reached
-                        val currCoord = nextBeacon.coordinate
-                        Toast.makeText(this, "Entered beacon $name, description: $description", Toast.LENGTH_SHORT).show()
-                        Log.d(debugTAG, "Entered beacon $name, description: $description")
-                        queue.remove()
-                        nextBeacon = queue.element()
+                        handler.post(threadForBeaconNav)
 
-                        var nextOrientation = getNextOrientation(currentPos, userOrientation, nextBeacon.coordinate)
-
-                        while (userOrientation != nextOrientation) {
-                            val dir = getDirectionToTurn(userOrientation, nextOrientation)
-
-                            if (dir == Direction.LEFT) {
-                                directionIv.setImageDrawable(resources.getDrawable(R.drawable.turn_left, null))
-                                TTSOutput = "Please turn to your left..."
-                                TTSCtrl.speakOut(TTSOutput)
-                            } else if (dir == Direction.RIGHT) {
-                                directionIv.setImageDrawable(resources.getDrawable(R.drawable.turn_right, null))
-                                TTSOutput = "Please turn to your right..."
-                                TTSCtrl.speakOut(TTSOutput)
-                            } else if (dir == Direction.BACK) {
-                                TTSOutput = "You are moving astray from your destination... Please turn around or double tap to change destination..."
-                                TTSCtrl.speakOut(TTSOutput)
-                                directionIv.setImageDrawable(resources.getDrawable(R.drawable.turn_around, null))
-                            }
-
-                            //Wait for user to turn
-                            Handler().postDelayed({
-                            }, 2000)
-                        }
-
-                        //1m = 2 coordinate units = 3 steps
-                        if (userOrientation == nextOrientation) {
-                            var steps = 0
-                            if (currCoord.x - nextBeacon.coordinate.x != 0.0) {
-                                steps = (((currCoord.x - nextBeacon.coordinate.x).absoluteValue)/2*3).roundToInt()
-                            } else if (currCoord.y - nextBeacon.coordinate.y != 0.0 ) {
-                                steps = (((currCoord.y - nextBeacon.coordinate.y).absoluteValue)/2*3).roundToInt()
-                            }
-
-                            TTSOutput = "Please move $steps steps forward"
-                            TTSCtrl.speakOut(TTSOutput)
-                        }
+//                        currentPos = nextBeacon.coordinate
+//                        Toast.makeText(this, "Entered beacon $name, description: $description", Toast.LENGTH_SHORT).show()
+//                        Log.d(debugTAG, "Entered beacon $name, description: $description")
+//                        queue.remove()
+//                        nextBeacon = queue.element()
+//
+//                        var nextOrientation = nav.getNextOrientation(currentPos, userOrientation, nextBeacon.coordinate)
+//
+//                        while (userOrientation != nextOrientation) {
+//                            val dir = nav.getDirectionToTurn(userOrientation, nextOrientation)
+//
+//                            if (dir == Direction.LEFT) {
+//                                directionIv.setImageDrawable(resources.getDrawable(R.drawable.turn_left, null))
+//                                TTSOutput = "Please turn to your left..."
+//                                TTSCtrl.speakOut(TTSOutput)
+//                            } else if (dir == Direction.RIGHT) {
+//                                directionIv.setImageDrawable(resources.getDrawable(R.drawable.turn_right, null))
+//                                TTSOutput = "Please turn to your right..."
+//                                TTSCtrl.speakOut(TTSOutput)
+//                            } else if (dir == Direction.BACK) {
+//                                TTSOutput = "You are moving astray from your destination... Please turn around or double tap to change destination..."
+//                                TTSCtrl.speakOut(TTSOutput)
+//                                directionIv.setImageDrawable(resources.getDrawable(R.drawable.turn_around, null))
+//                            }
+//
+//                            //Wait for user to turn
+//                            Handler().postDelayed({
+//                            }, 2000)
+//                        }
+//
+//                        //1m = 2 coordinate units = 3 steps
+//                        if (userOrientation == nextOrientation) {
+//                            var steps = 0
+//                            if (currentPos.x - nextBeacon.coordinate.x != 0.0) {
+//                                steps = (((currentPos.x - nextBeacon.coordinate.x).absoluteValue)/2*3).roundToInt()
+//                            } else if (currentPos.y - nextBeacon.coordinate.y != 0.0 ) {
+//                                steps = (((currentPos.y - nextBeacon.coordinate.y).absoluteValue)/2*3).roundToInt()
+//                            }
+//
+//                            TTSOutput = "Please move $steps steps forward"
+//                            TTSCtrl.speakOut(TTSOutput)
+//                        }
                     } else if (beacon.deviceId != nextBeacon.deviceID ) {
                         //check if skipped beacon or wrong beacon
                         var tempQ = queue
@@ -315,7 +301,7 @@ class MainNavigationActivity: AppCompatActivity(){
                         TTSOutput = "Destination changed to $dest"
                         TTSCtrl.speakOut(TTSOutput)
 
-                        destination = DestinationBeacon(beacon.deviceId, 1.0)
+                        destination = DestinationBeacon(beacon.deviceId, 1)
 
                         //exit is in 1m range, so turn back and walk 1m to go back
                         TTSOutput = "Please turn around and move 3 steps forward"
@@ -329,7 +315,7 @@ class MainNavigationActivity: AppCompatActivity(){
                 }
                 .build()
 
-        proxObsHandler = proxObserver.startObserving(obstacleZone, destinationZone)
+        proxObsHandler = proxObserver.startObserving(destinationZone)
     }
 
     override fun onDestroy() {
@@ -348,8 +334,8 @@ class MainNavigationActivity: AppCompatActivity(){
                 .estimoteLocationScan()
                 .withLowLatencyPowerMode()
                 .withOnPacketFoundAction { packet ->
-                    val beacon = DestinationBeacon(packet.deviceId, Math.pow(10.0, ((packet.measuredPower - packet.rssi) / 20.0)))
-                    //Math.pow(10.0, (packet.rssi - packet.measuredPower) / -20)
+                    val beacon = DestinationBeacon(packet.deviceId, packet.measuredPower)
+                    beacon.distance = nav.computeDistance(packet.rssi, packet.measuredPower)
 
                     if (!beaconList.contains(beacon)) {
                         beaconList.add(beacon)
@@ -381,14 +367,14 @@ class MainNavigationActivity: AppCompatActivity(){
             }
         }, 5000)
 
-        val currCoord = Navigator().findUserPos(beaconList)
+        val currentPos = nav.findUserPos(beaconList)
 
         Log.d(debugTAG, "userOrientation: $userOrientation")
 
-        val nextOrientation = getNextOrientation(currentPos, userOrientation, nextBeacon.coordinate)
+        val nextOrientation = nav.getNextOrientation(currentPos, userOrientation, nextBeacon.coordinate)
 
         while (userOrientation != nextOrientation) {
-            val dir = getDirectionToTurn(userOrientation, nextOrientation)
+            val dir = nav.getDirectionToTurn(userOrientation, nextOrientation)
 
             if (dir == Direction.LEFT) {
                 directionIv.setImageDrawable(resources.getDrawable(R.drawable.turn_left, null))
@@ -413,10 +399,10 @@ class MainNavigationActivity: AppCompatActivity(){
         if (userOrientation == nextOrientation) {
             var xSteps = 0
             var ySteps = 0
-            if (currCoord.x - nextBeacon.coordinate.x != 0.0) {
-                xSteps = (((currCoord.x - nextBeacon.coordinate.x).absoluteValue)/2*3).roundToInt()
-            } else if (currCoord.y - nextBeacon.coordinate.y != 0.0 ) {
-                ySteps = (((currCoord.y - nextBeacon.coordinate.y).absoluteValue)/2*3).roundToInt()
+            if (currentPos.x - nextBeacon.coordinate.x != 0.0) {
+                xSteps = (((currentPos.x - nextBeacon.coordinate.x).absoluteValue)/2*3).roundToInt()
+            } else if (currentPos.y - nextBeacon.coordinate.y != 0.0 ) {
+                ySteps = (((currentPos.y - nextBeacon.coordinate.y).absoluteValue)/2*3).roundToInt()
             }
 
             if (xSteps != 0) {
@@ -425,8 +411,8 @@ class MainNavigationActivity: AppCompatActivity(){
                 Handler().postDelayed({
                 }, 5000)
             } else if (ySteps !=0 ) {
-                val nextOrientation = getNextOrientation(currentPos, userOrientation, nextBeacon.coordinate)
-                val dir = getDirectionToTurn(userOrientation, nextOrientation)
+                val nextOrientation = nav.getNextOrientation(currentPos, userOrientation, nextBeacon.coordinate)
+                val dir = nav.getDirectionToTurn(userOrientation, nextOrientation)
 
                 if (dir == Direction.LEFT) {
                     directionIv.setImageDrawable(resources.getDrawable(R.drawable.turn_left, null))
@@ -455,74 +441,21 @@ class MainNavigationActivity: AppCompatActivity(){
         }
     }
 
-    private fun getOrientation(azimuth: Float): Orientation {
-        return if (azimuth > 315 || azimuth < 45) {
-            Orientation.NORTH
-        } else if (azimuth > 45 || azimuth < 135) {
-            Orientation.EAST
-        } else if (azimuth > 135 || azimuth < 225) {
-            Orientation.SOUTH
-        } else {
-            Orientation.WEST
-        }
-    }
-
-    private fun getDirectionToTurn(originalOrientation: Orientation, nextOrientation: Orientation): Direction? {
-        when (originalOrientation) {
-            Orientation.NORTH -> when (nextOrientation) {
-                Orientation.SOUTH -> return Direction.BACK
-                Orientation.WEST -> return Direction.LEFT
-                Orientation.EAST -> return Direction.RIGHT
-            }
-            Orientation.SOUTH -> when (nextOrientation) {
-                Orientation.NORTH -> return Direction.BACK
-                Orientation.WEST -> return Direction.RIGHT
-                Orientation.EAST -> return Direction.LEFT
-            }
-            Orientation.EAST -> when (nextOrientation) {
-                Orientation.NORTH -> return Direction.LEFT
-                Orientation.SOUTH -> return Direction.RIGHT
-                Orientation.WEST -> return Direction.BACK
-            }
-            Orientation.WEST -> when (nextOrientation) {
-                Orientation.NORTH -> return Direction.RIGHT
-                Orientation. SOUTH -> return Direction.LEFT
-                Orientation.EAST -> return Direction.BACK
-            }
-        }
-        return null
-    }
-
-    private fun getNextOrientation(userCurrentCoordinate: Coordinate?, userCurrentOrientation: Orientation, targetCoordinate: Coordinate): Orientation {
-        return if (userCurrentCoordinate!!.x - targetCoordinate.x > 0) {
-            Orientation.WEST
-        } else if (targetCoordinate.x - userCurrentCoordinate.x > 0) {
-            Orientation.EAST
-        } else {
-            if (userCurrentCoordinate.y - targetCoordinate.y > 0) {
-                Orientation.SOUTH
-            } else if (targetCoordinate.y - userCurrentCoordinate.y > 0) {
-                Orientation.NORTH
-            } else {
-                userCurrentOrientation
-            }
-        }
-    }
-
     private fun initializeListeners() {
         var azimuthCount = 0
         var tempAzimuth: Float = 0.toFloat()
         compass = Compass(this)
 
-        val cl = object: CompassListener{
+        val cl = object: CompassListener {
             override fun onAzimuthChange(azimuth: Float) {
                 //Do something each time azimuth changes
                 azimuthCount++
                 tempAzimuth += azimuth
                 if (azimuthCount == 200) {
                     tempAzimuth /= azimuthCount
-                    userOrientation = getOrientation(tempAzimuth)
+                    userOrientation = compass.getOrientation(tempAzimuth)
                     azimuthCount = 0
+                    Log.d(debugTAG, "Azimuth: " + tempAzimuth)
                 }
             }
         }

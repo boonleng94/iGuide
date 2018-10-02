@@ -11,4 +11,5 @@ class MainApp : Application() {
     var speech = TTSController()
     var channelID = "iGuide"
     var destList = ArrayList<DestinationBeacon>()
+    var startPos = Coordinate(-1.0,-1.0)
 }

@@ -39,7 +39,7 @@ dependencies {
     //implementation 'com.estimote:indoorsdk:2.5.4'
     implementation 'com.estimote:proximity-sdk:1.0.1'
     implementation 'com.estimote:mustard:0.2.1'
-    implementation 'com.estimote:sdk:1.4.5'
+    //implementation 'com.estimote:sdk:1.4.5'
 
     implementation 'com.lemmingapex.trilateration:trilateration:1.0.2'
 

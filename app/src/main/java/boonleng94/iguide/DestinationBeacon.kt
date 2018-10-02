@@ -2,7 +2,8 @@ package boonleng94.iguide
 
 import java.io.Serializable
 
-data class DestinationBeacon(val deviceID: String, var distance: Double): Serializable{
+data class DestinationBeacon(val deviceID: String, var measuredPower: Int): Serializable{
+    var distance = -1.0
     var coordinate = Coordinate(-1.0, -1.0)
     var name = "Beacon Name"
     var description = "Beacon Description"

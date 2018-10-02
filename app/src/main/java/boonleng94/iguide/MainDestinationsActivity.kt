@@ -18,7 +18,6 @@ import android.view.GestureDetector
 import android.view.Gravity
 import android.view.MotionEvent
 import android.widget.TextView
-import android.widget.Toast
 
 import com.estimote.proximity_sdk.api.ProximityObserver
 import com.estimote.proximity_sdk.api.ProximityObserverBuilder
@@ -93,11 +92,9 @@ class MainDestinationsActivity : AppCompatActivity() {
                     val name = beacon.attachments["name"]
                     val description = beacon.attachments["description"]
 
-                    Toast.makeText(this, "Entered destination beacon $name, description: $description", Toast.LENGTH_SHORT).show()
                     Log.d(debugTAG, "Entered destination beacon $name, description: $description")
                 }
                 .onExit {
-                    Toast.makeText(this, "Left the destination beacon", Toast.LENGTH_SHORT).show()
                     Log.d(debugTAG, "Exit destination beacon")
 
                 }
@@ -111,8 +108,6 @@ class MainDestinationsActivity : AppCompatActivity() {
                             val coordinate = beacon.attachments["coordinate"]!!
                             val description = beacon.attachments["description"]!!
 
-                            Log.d(debugTAG, "onContextChange - Device IDs: $destDeviceID")
-
                             if (destList.isNotEmpty()) {
                                 for (i in destList) {
                                     if (i.deviceID.equals(destDeviceID, true)) {
@@ -121,6 +116,8 @@ class MainDestinationsActivity : AppCompatActivity() {
                                         i.description = description
 
                                         if (!displayList.contains(i.name)) {
+                                            Log.d(debugTAG, "onContextChange - Device IDs: $destDeviceID, $name, $description, $coordinate")
+
                                             val tvDest = TextView(this)
                                             tvDest.gravity = Gravity.CENTER_HORIZONTAL
                                             tvDest.textSize = 24f
@@ -175,8 +172,6 @@ class MainDestinationsActivity : AppCompatActivity() {
     private fun readDestinations() {
         var index = 1
 
-        // // var doneSpeech = false
-
         for (i in viewList) {
             destOutputString.append(". $index. ${i.text}. ")
             index++
@@ -207,30 +202,25 @@ class MainDestinationsActivity : AppCompatActivity() {
         }
     }
 
-    private fun getOrientation(azimuth: Float): Orientation {
-        return if (azimuth > 315 || azimuth < 45) {
-            Orientation.NORTH
-        } else if (azimuth > 45 || azimuth < 135) {
-            Orientation.EAST
-        } else if (azimuth > 135 || azimuth < 225) {
-            Orientation.SOUTH
-        } else {
-            Orientation.WEST
-        }
-    }
-
-    private fun startNavigation(destBeacon: DestinationBeacon, output: String) {
+    private fun startNavigation(destBeacon: DestinationBeacon) {
         destObsHandler.stop()
         shakeDetector.stop()
-        compass.stop()
         mSpeechRecognizer.destroy()
 
-        val intent = Intent(applicationContext, MainNavigationActivity::class.java)
-        intent.putExtra("destination", destBeacon)
-        intent.putExtra("currentPos", Navigator().findUserPos(destList))
-        intent.putExtra("currentOrientation", userOrientation)
-        intent.putExtra("TTSOutput", output)
-        startActivity(intent)
+        Handler().postDelayed( {
+            compass.stop()
+        }, 2000)
+
+        Handler().postDelayed( {
+            val currentPos =  Navigator().findUserPos(destList)
+            (application as MainApp).startPos = currentPos
+
+            val intent = Intent(applicationContext, MainNavigationActivity::class.java)
+            intent.putExtra("destination", destBeacon)
+            intent.putExtra("currentPos", currentPos)
+            intent.putExtra("currentOrientation", userOrientation)
+            startActivity(intent)
+        }, 5000)
     }
 
     private fun initializeListeners() {
@@ -238,15 +228,16 @@ class MainDestinationsActivity : AppCompatActivity() {
         var tempAzimuth: Float = 0.toFloat()
         compass = Compass(this)
 
-        val cl = object: CompassListener{
+        val cl = object: CompassListener {
             override fun onAzimuthChange(azimuth: Float) {
                 //Do something each time azimuth changes
                 azimuthCount++
                 tempAzimuth += azimuth
                 if (azimuthCount == 200) {
                     tempAzimuth /= azimuthCount
-                    userOrientation = getOrientation(tempAzimuth)
+                    userOrientation = compass.getOrientation(tempAzimuth)
                     azimuthCount = 0
+                    Log.d(debugTAG, "Azimuth: " + tempAzimuth)
                 }
             }
         }
@@ -324,7 +315,7 @@ class MainDestinationsActivity : AppCompatActivity() {
     }
 
     private inner class SpeechRecognitionListener : RecognitionListener {
-        val intMap: HashMap<Int, String> = hashMapOf(1 to "one", 2 to "two", 3 to "three", 4 to "four", 5 to "five", 6 to "six", 7 to "7", 8 to "eight", 9 to "nine", 10 to "ten", 11 to "eleven")
+        val intMap = Dictionary().intMap
 
         override fun onBeginningOfSpeech() {
         }
@@ -370,25 +361,26 @@ class MainDestinationsActivity : AppCompatActivity() {
         //Speech to text onResults
         override fun onResults(results: Bundle) {
             val matches = results.getStringArrayList(SpeechRecognizer.RESULTS_RECOGNITION)
-            val count = destList.size
-            var choice: Int = 0
-            // var doneSpeech = false
+            var choice: Int = -1
 
             Log.d(debugTAG, "STT results: " + matches.toString())
 
             if (matches.isNotEmpty()) {
-                for (i in 1..count) {
-                    val value = intMap.getValue(i)
-
-                    if (matches.contains(value) || matches.contains(i.toString())) {
-                        choice = i
+                for ((index,i) in displayList.withIndex()) {
+                    if (matches.contains(i)) {
+                        choice = index
+                        break
+                    } else if (matches.contains(intMap.getValue(index+1)) || matches.contains((index+1).toString())) {
+                        choice = index
                         break
                     }
                 }
 
-                if (choice != 0) {
-                    var destBeacon = DestinationBeacon("Beacon", 0.0)
-                    val dest = displayList[choice-1]
+                Log.d(debugTAG, "Choice: " + choice)
+
+                if (choice != -1) {
+                    var destBeacon = DestinationBeacon("Beacon", 0)
+                    val dest = displayList[choice]
 
                     for (i in destList) {
                         if (i.name.equals(dest, true)) {
@@ -398,10 +390,12 @@ class MainDestinationsActivity : AppCompatActivity() {
                     }
 
                     //Start navigation to choice
-                    if (destBeacon.deviceID != "null") {
-                        val output = "You have chosen to go to choice $choice, $dest ..."
+                    if (destBeacon.deviceID != "Beacon") {
+                        choice += 1
+                        val output = "You have chosen to go to choice $choice ..., $dest ... Please wait as I find your orientation"
+                        TTSCtrl.speakOut(output)
 
-                        startNavigation(destBeacon, output)
+                        startNavigation(destBeacon)
                     }
                 } else {
                     val TTSUPL = object: UtteranceProgressListener() {

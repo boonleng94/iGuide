@@ -4,6 +4,7 @@ import android.Manifest
 import android.content.Intent
 import android.content.pm.PackageManager
 import android.os.Bundle
+import android.os.Handler
 import android.support.v4.app.ActivityCompat
 import android.support.v7.app.AppCompatActivity
 import android.util.Log
@@ -22,7 +23,8 @@ class SplashActivity : AppCompatActivity(){
     private lateinit var scanHandle: ScanHandler
 
     private var beaconList = ArrayList<DestinationBeacon>()
-    private var noUpdateCount = 0
+    private var allRssiList = ArrayList<ArrayList<Int>>()
+    private var rssiCount = 0
 
     // Requesting permission to RECORD_AUDIO
     private val REQUEST_RECORD_AUDIO_PERMISSION = 200
@@ -56,7 +58,6 @@ class SplashActivity : AppCompatActivity(){
 
         ActivityCompat.requestPermissions(this, permissions, REQUEST_RECORD_AUDIO_PERMISSION)
 
-
         RequirementsWizardFactory.createEstimoteRequirementsWizard().fulfillRequirements(this,
                 // onRequirementsFulfilled
                 {
@@ -68,54 +69,61 @@ class SplashActivity : AppCompatActivity(){
                             .estimoteLocationScan()
                             .withLowLatencyPowerMode()
                             .withOnPacketFoundAction { packet ->
-                                if (noUpdateCount == 200) {
-                                    if (beaconList.isNotEmpty()) {
-                                        scanHandle.stop()
-                                        (application as MainApp).destList = beaconList
-                                        startActivity(Intent(applicationContext, MainDestinationsActivity::class.java))
-                                    } else {
-                                        scanHandle.stop()
-                                        TTSCtrl.speakOut("No beacons found! Eye Guide is currently not usable. ")
-                                        val homeIntent = Intent(Intent.ACTION_MAIN)
-                                        homeIntent.addCategory(Intent.CATEGORY_HOME)
-                                        homeIntent.flags = Intent.FLAG_ACTIVITY_CLEAR_TOP
-                                        startActivity(homeIntent)
+                                if (rssiCount == 500) {
+                                    scanHandle.stop()
+
+                                    //do filtering here
+                                    val filter = RSSIFilter()
+
+                                    for ((index, i) in allRssiList.withIndex()) {
+                                        Log.d(debugTAG, "Index: " + index + " RSSIList: " + allRssiList[index])
+
+                                        val filteredRssiList = filter.eliminateOutliers(i, 1.8f)
+                                        Log.d(debugTAG, "Filtered RSSIList: " + filteredRssiList)
+
+                                        val filteredRssi = filter.getMode(filteredRssiList)
+                                        Log.d(debugTAG, "Filtered RSSI: " + filteredRssi)
+
+                                        beaconList[index].distance = Navigator().computeDistance(filteredRssi, beaconList[index].measuredPower)
+                                        Log.d(debugTAG, "For logging - Beacon DeviceID: " + beaconList[index].deviceID + ", Distance: " + beaconList[index].distance)
                                     }
+
+                                    (application as MainApp).destList = beaconList
+                                    startActivity(Intent(applicationContext, MainDestinationsActivity::class.java))
+                                } else {
                                 }
 
-                                val beacon = DestinationBeacon(packet.deviceId, Math.pow(10.0, ((packet.measuredPower - packet.rssi) / 20.0)))
-                                //Math.pow(10.0, (packet.rssi - packet.measuredPower) / -20)
-
-                                Log.d(debugTAG, "For logging - Beacon DeviceID: " + beacon.deviceID + ", Distance: " + beacon.distance)
+                                val beacon = DestinationBeacon(packet.deviceId, packet.measuredPower)
+                                Log.d(debugTAG, "For logging - Beacon DeviceID: " + beacon.deviceID + ", RSSI: " + packet.rssi)
 
                                 if (!beaconList.contains(beacon)) {
+                                    //new beacon detected
                                     beaconList.add(beacon)
-                                    Log.d(debugTAG, "Added to beaconList: " + beacon.deviceID + ", " + beacon.distance)
+                                    var beaconRSSIList = ArrayList<Int>()
+                                    beaconRSSIList.add(packet.rssi)
+                                    allRssiList.add(beaconRSSIList)
+                                    Log.d(debugTAG, "Added to beaconList: " + beacon.deviceID + ", " + packet.rssi)
                                 } else if (beaconList.contains(beacon)) {
                                     val index = beaconList.indexOf(beacon)
-
-                                    //Always take lower bound reading above 1.0m
-                                    //Reason is it will never be below 1.0m, as the beacons will be placed at above head level,
-                                    //average distance from beacon to phone will definitely be more than 1.0m
-                                    if (beaconList[index].distance > beacon.distance && beacon.distance > 1.0) {
-                                        noUpdateCount = 0
-                                        beaconList[index].distance = beacon.distance
-                                        Log.d(debugTAG, "Updated beaconList beacon: " + beacon.deviceID + ", " + beacon.distance)
-                                    } else {
-                                        noUpdateCount++
-                                    }
-                                }
-
-                                if (beaconList.isNotEmpty()) {
-                                    beaconList.sortBy {
-                                        it.distance
-                                    }
+                                    allRssiList[index].add(packet.rssi)
+                                    rssiCount++
                                 }
                             }
                             .withOnScanErrorAction {
                                 Log.e(debugTAG, "Bluetooth Scan failed: $it")
                             }
                             .start()
+
+                    Handler().postDelayed({
+                        if (beaconList.isEmpty()) {
+                            TTSCtrl.speakOut("No beacons found! Eye Guide is currently not usable. ")
+                            val homeIntent = Intent(Intent.ACTION_MAIN)
+                            homeIntent.addCategory(Intent.CATEGORY_HOME)
+                            homeIntent.flags = Intent.FLAG_ACTIVITY_CLEAR_TOP
+                            scanHandle.stop()
+                            startActivity(homeIntent)
+                        }
+                    }, 30000)
                 },
                 // onRequirementsMissing
                 { requirements ->

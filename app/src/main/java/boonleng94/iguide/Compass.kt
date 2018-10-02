@@ -29,6 +29,7 @@ class Compass(context: Context): SensorEventListener {
     private val constantI = FloatArray(9)
 
     private var azimuth: Float = 0.toFloat()
+    private var calibrate = false
 
     init {
         accSensor = sensorManager.getDefaultSensor(Sensor.TYPE_ACCELEROMETER)
@@ -92,6 +93,19 @@ class Compass(context: Context): SensorEventListener {
     }
 
     override fun onAccuracyChanged(sensor: Sensor, accuracy: Int) {
+        if (accuracy != SensorManager.SENSOR_STATUS_ACCURACY_HIGH) {
+            calibrate = true
+        }
+    }
 
+    fun getOrientation(azimuth: Float): Orientation {
+        return if (azimuth > 45 && azimuth < 135) {
+            Orientation.EAST
+        } else if (azimuth > 135 && azimuth < 225) {
+            Orientation.SOUTH
+        } else if (azimuth > 235 && azimuth < 315){
+            Orientation.WEST
+        } else
+            Orientation.NORTH
     }
 }
