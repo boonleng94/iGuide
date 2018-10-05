@@ -35,8 +35,8 @@
         android:orientation="vertical"
         app:layout_constraintGuide_percent="0.92" />
 
-    <Canvas
-        android:id="@+id/iv_direction"
+    <android.support.constraint.ConstraintLayout
+        android:id="@+id/map_canvas"
         android:layout_width="325dp"
         android:layout_height="wrap_content"
         android:contentDescription="@string/move"

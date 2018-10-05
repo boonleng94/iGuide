@@ -215,11 +215,20 @@ class MainDestinationsActivity : AppCompatActivity() {
             val currentPos =  Navigator().findUserPos(destList)
             (application as MainApp).startPos = currentPos
 
+            //done here and finish() to prevent memory error
+            val nav = Navigator()
+            val nextBeacon = nav.findNextNearest(currentPos, destList)
+            nav.initialize(nextBeacon.coordinate, userOrientation, destBeacon.coordinate, destList)
+            val idealQueue = nav.executeFastestPath() as LinkedList<DestinationBeacon>
+
             val intent = Intent(applicationContext, MainNavigationActivity::class.java)
             intent.putExtra("destination", destBeacon)
             intent.putExtra("currentPos", currentPos)
             intent.putExtra("currentOrientation", userOrientation)
+            intent.putExtra("nextBeacon", nextBeacon)
+            intent.putExtra("idealQueue", idealQueue)
             startActivity(intent)
+            finish()
         }, 5000)
     }
 
@@ -367,7 +376,7 @@ class MainDestinationsActivity : AppCompatActivity() {
 
             if (matches.isNotEmpty()) {
                 for ((index,i) in displayList.withIndex()) {
-                    if (matches.contains(i)) {
+                    if (matches.contains(i.toLowerCase())) {
                         choice = index
                         break
                     } else if (matches.contains(intMap.getValue(index+1)) || matches.contains((index+1).toString())) {
@@ -375,8 +384,6 @@ class MainDestinationsActivity : AppCompatActivity() {
                         break
                     }
                 }
-
-                Log.d(debugTAG, "Choice: " + choice)
 
                 if (choice != -1) {
                     var destBeacon = DestinationBeacon("Beacon", 0)
@@ -394,6 +401,8 @@ class MainDestinationsActivity : AppCompatActivity() {
                         choice += 1
                         val output = "You have chosen to go to choice $choice ..., $dest ... Please wait as I find your orientation"
                         TTSCtrl.speakOut(output)
+
+                        Log.d(debugTAG, output)
 
                         startNavigation(destBeacon)
                     }

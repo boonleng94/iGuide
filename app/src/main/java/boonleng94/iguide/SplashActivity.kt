@@ -76,25 +76,26 @@ class SplashActivity : AppCompatActivity(){
                                     val filter = RSSIFilter()
 
                                     for ((index, i) in allRssiList.withIndex()) {
-                                        Log.d(debugTAG, "Index: " + index + " RSSIList: " + allRssiList[index])
+                                        //Log.d(debugTAG, "Index: " + index + " RSSIList: " + allRssiList[index])
 
                                         val filteredRssiList = filter.eliminateOutliers(i, 1.8f)
-                                        Log.d(debugTAG, "Filtered RSSIList: " + filteredRssiList)
+                                        //Log.d(debugTAG, "Filtered RSSIList: " + filteredRssiList)
 
                                         val filteredRssi = filter.getMode(filteredRssiList)
-                                        Log.d(debugTAG, "Filtered RSSI: " + filteredRssi)
+                                        //Log.d(debugTAG, "Filtered RSSI: " + filteredRssi)
 
                                         beaconList[index].distance = Navigator().computeDistance(filteredRssi, beaconList[index].measuredPower)
-                                        Log.d(debugTAG, "For logging - Beacon DeviceID: " + beaconList[index].deviceID + ", Distance: " + beaconList[index].distance)
+                                        //Log.d(debugTAG, "For logging - Beacon DeviceID: " + beaconList[index].deviceID + ", Distance: " + beaconList[index].distance)
                                     }
 
                                     (application as MainApp).destList = beaconList
                                     startActivity(Intent(applicationContext, MainDestinationsActivity::class.java))
+                                    finish()
                                 } else {
                                 }
 
                                 val beacon = DestinationBeacon(packet.deviceId, packet.measuredPower)
-                                Log.d(debugTAG, "For logging - Beacon DeviceID: " + beacon.deviceID + ", RSSI: " + packet.rssi)
+                                //Log.d(debugTAG, "For logging - Beacon DeviceID: " + beacon.deviceID + ", RSSI: " + packet.rssi)
 
                                 if (!beaconList.contains(beacon)) {
                                     //new beacon detected
@@ -102,7 +103,7 @@ class SplashActivity : AppCompatActivity(){
                                     var beaconRSSIList = ArrayList<Int>()
                                     beaconRSSIList.add(packet.rssi)
                                     allRssiList.add(beaconRSSIList)
-                                    Log.d(debugTAG, "Added to beaconList: " + beacon.deviceID + ", " + packet.rssi)
+                                    //Log.d(debugTAG, "Added to beaconList: " + beacon.deviceID + ", " + packet.rssi)
                                 } else if (beaconList.contains(beacon)) {
                                     val index = beaconList.indexOf(beacon)
                                     allRssiList[index].add(packet.rssi)
