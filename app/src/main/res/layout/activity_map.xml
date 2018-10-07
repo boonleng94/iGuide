@@ -12,36 +12,39 @@
         android:layout_width="wrap_content"
         android:layout_height="wrap_content"
         android:orientation="horizontal"
-        app:layout_constraintGuide_percent="0.08" />
+        app:layout_constraintGuide_percent="0.1" />
 
     <android.support.constraint.Guideline
         android:id="@+id/bottom_guideline"
         android:layout_width="wrap_content"
         android:layout_height="wrap_content"
         android:orientation="horizontal"
-        app:layout_constraintGuide_percent="0.92" />
+        app:layout_constraintGuide_percent="0.9" />
 
     <android.support.constraint.Guideline
         android:id="@+id/left_guideline"
         android:layout_width="wrap_content"
         android:layout_height="wrap_content"
         android:orientation="vertical"
-        app:layout_constraintGuide_percent="0.08" />
+        app:layout_constraintGuide_percent="0.1" />
 
     <android.support.constraint.Guideline
         android:id="@+id/right_guideline"
         android:layout_width="wrap_content"
         android:layout_height="wrap_content"
         android:orientation="vertical"
-        app:layout_constraintGuide_percent="0.92" />
+        app:layout_constraintGuide_percent="0.9" />
 
-    <android.support.constraint.ConstraintLayout
-        android:id="@+id/map_canvas"
-        android:layout_width="325dp"
+    <view
+        android:id="@+id/map"
+        class="boonleng94.iguide.MapView"
+        android:layout_width="wrap_content"
         android:layout_height="wrap_content"
-        android:contentDescription="@string/move"
+        android:alignmentMode="alignMargins"
+        android:contentDescription="map"
         app:layout_constraintBottom_toTopOf="@+id/bottom_guideline"
-        app:layout_constraintLeft_toLeftOf="@+id/left_guideline"
-        app:layout_constraintRight_toLeftOf="@+id/right_guideline" />
+        app:layout_constraintLeft_toRightOf="@+id/left_guideline"
+        app:layout_constraintRight_toLeftOf="@+id/right_guideline"
+        app:layout_constraintTop_toBottomOf="@+id/top_guideline" />
 
 </android.support.constraint.ConstraintLayout>

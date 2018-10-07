@@ -26,6 +26,9 @@
         <activity android:name="boonleng94.iguide.MainNavigationActivity">
         </activity>
 
+        <activity android:name="boonleng94.iguide.MainMapActivity">
+        </activity>
+
         <service
             android:name=".MovementDetectionService"
             android:exported="false" />
