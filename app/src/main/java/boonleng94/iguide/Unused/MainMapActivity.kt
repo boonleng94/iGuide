@@ -36,8 +36,8 @@
 //    private lateinit var destTv: TextView
 //    private lateinit var passbyTv: TextView
 //
-//    private lateinit var nextBeacon: DestinationBeacon
-//    private lateinit var destination: DestinationBeacon
+//    private lateinit var nextBeacon: Beacon
+//    private lateinit var destination: Beacon
 //    private lateinit var currentPos: Coordinate
 //
 //    private var inBeacon = false
@@ -55,7 +55,7 @@
 //        destTv = findViewById(R.id.tv_destination)
 //        passbyTv = findViewById(R.id.passby_alert_placeholder)
 //
-//        destination = intent.getSerializableExtra("destination") as DestinationBeacon
+//        destination = intent.getSerializableExtra("destination") as Beacon
 //        currentPos = intent.getSerializableExtra("currentPos") as Coordinate
 //        userOrientation = intent.getSerializableExtra("currentOrientation") as Orientation
 //        TTSOutput = intent.getSerializableExtra("TTSOutput") as String
@@ -80,7 +80,7 @@
 //
 //        val destList = (application as MainApp).destList
 //
-//        var queue: Queue<DestinationBeacon> = LinkedList<DestinationBeacon>()
+//        var queue: Queue<Beacon> = LinkedList<Beacon>()
 //        destList.sortBy {
 //            it.distance
 //        }
@@ -314,7 +314,7 @@
 //                        TTSOutput = "Destination changed to $dest"
 //                        TTSCtrl.speakOut(TTSOutput)
 //
-//                        destination = DestinationBeacon(beacon.deviceId, 1.0)
+//                        destination = Beacon(beacon.deviceId, 1.0)
 //
 //                        //exit is in 1m range, so turn back and walk 1m to go back
 //                        TTSOutput = "Please turn around and move 3 steps forward"
@@ -340,14 +340,14 @@
 //    }
 //
 //    private fun reNavigate() {
-//        val beaconList = ArrayList<DestinationBeacon>()
+//        val beaconList = ArrayList<Beacon>()
 //
 //        var scanHandle = EstimoteBluetoothScannerFactory(applicationContext)
 //                .getSimpleScanner()
 //                .estimoteLocationScan()
 //                .withLowLatencyPowerMode()
 //                .withOnPacketFoundAction { packet ->
-//                    val beacon = DestinationBeacon(packet.deviceId, Math.pow(10.0, ((packet.measuredPower - packet.rssi) / 20.0)))
+//                    val beacon = Beacon(packet.deviceId, Math.pow(10.0, ((packet.measuredPower - packet.rssi) / 20.0)))
 //                    //Math.pow(10.0, (packet.rssi - packet.measuredPower) / -20)
 //
 //                    if (!beaconList.contains(beacon)) {

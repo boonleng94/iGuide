@@ -22,7 +22,7 @@ class SplashActivity : AppCompatActivity(){
     private lateinit var TTSCtrl: TTSController
     private lateinit var scanHandle: ScanHandler
 
-    private var beaconList = ArrayList<DestinationBeacon>()
+    private var beaconList = ArrayList<Beacon>()
     private var allRssiList = ArrayList<ArrayList<Int>>()
     private var rssiCount = 0
 
@@ -53,8 +53,8 @@ class SplashActivity : AppCompatActivity(){
         setContentView(R.layout.activity_splash)
 
         startActivity(Intent(applicationContext, MainMapActivity::class.java))
-
-
+//
+//
 //        TTSCtrl = TTSController()
 //        TTSCtrl.initialize(applicationContext, Locale.US)
 //        (application as MainApp).speech = TTSCtrl
@@ -72,7 +72,7 @@ class SplashActivity : AppCompatActivity(){
 //                            .estimoteLocationScan()
 //                            .withLowLatencyPowerMode()
 //                            .withOnPacketFoundAction { packet ->
-//                                if (rssiCount == 500) {
+//                                if (rssiCount == 200) {
 //                                    scanHandle.stop()
 //
 //                                    //do filtering here
@@ -91,13 +91,15 @@ class SplashActivity : AppCompatActivity(){
 //                                        //Log.d(debugTAG, "For logging - Beacon DeviceID: " + beaconList[index].deviceID + ", Distance: " + beaconList[index].distance)
 //                                    }
 //
-//                                    (application as MainApp).destList = beaconList
-//                                    startActivity(Intent(applicationContext, MainDestinationsActivity::class.java))
+//                                    val intent = Intent(applicationContext, MainDestinationsActivity::class.java)
+//                                    intent.putExtra("detectedBeaconsList", beaconList)
+//                                    startActivity(intent)
 //                                    finish()
 //                                } else {
 //                                }
 //
-//                                val beacon = DestinationBeacon(packet.deviceId, packet.measuredPower)
+//                                val beacon = Beacon(packet.deviceId)
+//                                beacon.measuredPower = packet.measuredPower
 //                                //Log.d(debugTAG, "For logging - Beacon DeviceID: " + beacon.deviceID + ", RSSI: " + packet.rssi)
 //
 //                                if (!beaconList.contains(beacon)) {

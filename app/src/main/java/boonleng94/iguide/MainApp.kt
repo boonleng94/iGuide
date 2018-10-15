@@ -10,6 +10,6 @@ class MainApp : Application() {
     // Shared variables
     var speech = TTSController()
     var channelID = "iGuide"
-    var destList = ArrayList<DestinationBeacon>()
+    var destList = ArrayList<Beacon>()
     var startPos = Coordinate(-1.0,-1.0)
 }

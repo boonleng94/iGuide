@@ -16,7 +16,7 @@ class Navigator {
     private lateinit var currentPos: Coordinate
     private lateinit var destination: Coordinate
     private lateinit var currentOrientation: Orientation
-    private var dbList: ArrayList<DestinationBeacon> = ArrayList()
+    private var dbList: ArrayList<Beacon> = ArrayList()
     private lateinit var userPos: Coordinate
     private lateinit var userOrientation: Orientation
     private lateinit var travelCost: Array<IntArray>
@@ -35,7 +35,7 @@ class Navigator {
         private const val MAX_COST = 99999
     }
 
-    fun initialize(currentPos: Coordinate, currentOrientation: Orientation, destination: Coordinate, destList: ArrayList<DestinationBeacon>) {
+    fun initialize(currentPos: Coordinate, currentOrientation: Orientation, destination: Coordinate, destList: ArrayList<Beacon>) {
         this.currentPos = currentPos
         this.destination = destination
         this.currentOrientation = currentOrientation
@@ -216,7 +216,7 @@ class Navigator {
      * Returns the Queue of beacons that the user should pass to reach the destination the fastest
      * This method is for main program to call
      */
-    fun executeFastestPath(): Queue<DestinationBeacon> {
+    fun executeFastestPath(): Queue<Beacon> {
         Log.i(debugTAG, "Fastest path from (" + currentPos.x + ", " + currentPos.y + ") to (" + destination.x + ", " + destination.y + ")...")
         // Stack to contain the shortest path/mandatory coordinates the user should take (for backtracking later)
         val shortestPathStack = Stack<Coordinate>()
@@ -292,14 +292,14 @@ class Navigator {
             }
         } while (!coordsToVisit.isEmpty())
 
-        return LinkedList<DestinationBeacon>()
+        return LinkedList<Beacon>()
     }
 
     /**
      * Returns the Queue of beacons that the user should pass to reach the destination the fastest to the calling method
      */
-    private fun calcFastestPath(shortestPath: Stack<Coordinate>, destination: Coordinate): Queue<DestinationBeacon> {
-        var queue = LinkedList<DestinationBeacon>()
+    private fun calcFastestPath(shortestPath: Stack<Coordinate>, destination: Coordinate): Queue<Beacon> {
+        var queue = LinkedList<Beacon>()
         var nextOrientation: Orientation
         var m: Direction?
         val movementsToTake = ArrayList<Direction>()
@@ -348,9 +348,9 @@ class Navigator {
         }
     }
 
-    fun findNextNearest(source: Coordinate, destList: ArrayList<DestinationBeacon>): DestinationBeacon {
+    fun findNextNearest(source: Coordinate, destList: ArrayList<Beacon>): Beacon {
         //Not useful beacons
-        val beaconList = ArrayList<DestinationBeacon>()
+        val beaconList = ArrayList<Beacon>()
 
         for (p in destList) {
             beaconList.add(p.clone())
@@ -383,10 +383,10 @@ class Navigator {
                 return i
             }
         }
-        return DestinationBeacon("Beacon", 0)
+        return Beacon("Beacon")
     }
 
-    fun findShortestPath(source: Coordinate, dest: Coordinate, destList: ArrayList<DestinationBeacon>, queue: Queue<DestinationBeacon>): Queue<DestinationBeacon> {
+    fun findShortestPath(source: Coordinate, dest: Coordinate, destList: ArrayList<Beacon>, queue: Queue<Beacon>): Queue<Beacon> {
         //Not useful beacons
         destList.removeIf {
             item ->
@@ -428,9 +428,9 @@ class Navigator {
         return queue
     }
 
-    fun findUserPos(destList: ArrayList<DestinationBeacon>): Coordinate {
+    fun findUserPos(destList: ArrayList<Beacon>): Coordinate {
         //Not useful beacons
-        val beaconList = ArrayList<DestinationBeacon>()
+        val beaconList = ArrayList<Beacon>()
 
         for (p in destList) {
             beaconList.add(p.clone())
@@ -447,6 +447,12 @@ class Navigator {
             item.distance < 0.5
         }
 
+        //Definite more than 0.5 in real life. Means inaccurately approximated
+        beaconList.removeIf {
+            item ->
+            item.distance > 9
+        }
+
         var size = beaconList.size
 
         var posList = Array(size) {_ -> doubleArrayOf(0.0, 0.0)}
@@ -456,17 +462,17 @@ class Navigator {
 //        double[][] positions = new double[][]{{1.0, 1.0}, {1.0, 3.0}, {8.0, 8.0}, {2.0, 2.0}};
 //        double[] distances = new double[]{5.0, 5.0, 6.36, 3.9};
 //        double[] expectedPosition = new double[]{5.9, 2.0};
-//        var testList = ArrayList<DestinationBeacon>()
-//        var db1 = DestinationBeacon("Db1", 1)
+//        var testList = ArrayList<Beacon>()
+//        var db1 = Beacon("Db1", 1)
 //        db1.coordinate = Coordinate(1.0, 1.0)
 //        db1.distance = 5.0
-//        var db2 = DestinationBeacon("Db1", 1)
+//        var db2 = Beacon("Db1", 1)
 //        db2.coordinate = Coordinate(1.0, 3.0)
 //        db2.distance = 5.0
-//        var db3 = DestinationBeacon("Db1", 1)
+//        var db3 = Beacon("Db1", 1)
 //        db3.coordinate = Coordinate(8.0, 8.0)
 //        db3.distance = 6.36
-//        var db4 = DestinationBeacon("Db1", 1)
+//        var db4 = Beacon("Db1", 1)
 //        db4.coordinate = Coordinate(2.0, 2.0)
 //        db4.distance = 3.9
 //        testList.add(db1)

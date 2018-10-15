@@ -26,7 +26,7 @@ import kotlin.math.roundToInt
 import android.content.BroadcastReceiver
 import android.content.Context
 
-import com.google.android.gms.location.DetectedActivity;
+import com.google.android.gms.location.DetectedActivity
 import android.content.IntentFilter
 import android.support.v4.content.LocalBroadcastManager
 import android.os.CountDownTimer
@@ -47,8 +47,8 @@ class MainNavigationActivity: AppCompatActivity(){
     private lateinit var destTv: TextView
     private lateinit var passbyTv: TextView
 
-    private lateinit var nextBeacon: DestinationBeacon
-    private lateinit var destination: DestinationBeacon
+    private lateinit var nextBeacon: Beacon
+    private lateinit var destination: Beacon
     private lateinit var currentPos: Coordinate
     private lateinit var nextOrientation: Orientation
     private lateinit var broadcastReceiver: BroadcastReceiver
@@ -58,7 +58,7 @@ class MainNavigationActivity: AppCompatActivity(){
 
     private var handler = Handler()
     val nav = Navigator()
-    private var idealQueue: Queue<DestinationBeacon> = LinkedList<DestinationBeacon>()
+    private var idealQueue: Queue<Beacon> = LinkedList<Beacon>()
     private var pathTaken: Queue<Coordinate> = LinkedList<Coordinate>()
 
     private var TTSOutput = "Eye Guide"
@@ -70,11 +70,12 @@ class MainNavigationActivity: AppCompatActivity(){
         destTv = findViewById(R.id.tv_destination)
         passbyTv = findViewById(R.id.passby_alert_placeholder)
 
-        destination = intent.getSerializableExtra("destination") as DestinationBeacon
+        destination = intent.getSerializableExtra("destination") as Beacon
         currentPos = intent.getSerializableExtra("currentPos") as Coordinate
         currentOrientation = intent.getSerializableExtra("currentOrientation") as Orientation
-        nextBeacon = intent.getSerializableExtra("nextBeacon") as DestinationBeacon
-        var temp = intent.getSerializableExtra("idealQueue") as ArrayList<DestinationBeacon>
+        nextBeacon = intent.getSerializableExtra("nextBeacon") as Beacon
+        var temp = intent.getSerializableExtra("idealQueue") as ArrayList<Beacon>
+        val destList = intent.getSerializableExtra("beaconList") as ArrayList<Beacon>
 
         destTv.text = destination.name
         TTSCtrl = (application as MainApp).speech
@@ -90,8 +91,6 @@ class MainNavigationActivity: AppCompatActivity(){
                 .setSmallIcon(R.drawable.iguide_logo)
                 .setPriority(NotificationManager.IMPORTANCE_HIGH)
                 .build()
-
-        val destList = (application as MainApp).destList
 
         for (i in temp) {
             idealQueue.add(i)
@@ -180,7 +179,9 @@ class MainNavigationActivity: AppCompatActivity(){
             }
         }
 
-        handler.post(threadForBeaconNav)
+        if (!inBeacon) {
+            handler.post(threadForBeaconNav)
+        }
 
         //Build a ProximityObserver for ranging Beacons
         val proxObserver = ProximityObserverBuilder(applicationContext, (application as MainApp).proximityCloudCredentials)
@@ -218,6 +219,8 @@ class MainNavigationActivity: AppCompatActivity(){
                         Toast.makeText(this, "Entered destination $name, description: $description", Toast.LENGTH_SHORT).show()
                         Log.d(debugTAG, "Entered nav destination $name, description: $description")
                     } else {
+                        TTSOutput = "Please stop. You are now at $name... $description... "
+                        TTSCtrl.speakOut(TTSOutput)
                         Toast.makeText(this, "Entered beacon $name, description: $description", Toast.LENGTH_SHORT).show()
 
                         currentPos = Coordinate(coordinate.split(',')[0].trim().toDouble(), coordinate.split(',')[1].trim().toDouble())
@@ -253,7 +256,7 @@ class MainNavigationActivity: AppCompatActivity(){
                     if (doubleTap) {
                         TTSCtrl.speakOut("Destination changed to $dest")
 
-                        destination = DestinationBeacon(beacon.deviceId, 1)
+                        destination = Beacon(beacon.deviceId)
 
                         //exit is in 1m range, so turn back and walk 1m to go back
                         TTSOutput = "Please turn around and move 3 steps forward ..."

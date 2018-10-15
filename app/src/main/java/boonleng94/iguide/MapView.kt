@@ -1,23 +1,20 @@
 package boonleng94.iguide
 
 import android.content.Context
-import android.graphics.Canvas
-import android.graphics.Color
-import android.graphics.Paint
-import android.graphics.Typeface
+import android.content.Intent
+import android.graphics.*
+import android.os.Handler
 import android.support.v4.content.ContextCompat
 import android.util.AttributeSet
 import android.util.Log
 import android.view.View
 import kotlin.math.roundToInt
-import android.graphics.BitmapFactory
-import android.graphics.Bitmap
 
 class MapView : View {
     private val debugTAG = "MapView"
 
-    private var maxX: Int = 20
-    private var maxY: Int = 20
+    private var maxX: Int = 1
+    private var maxY: Int = 1
     private val WallThickness = 2f
 
     private var gridSize: Float = 0.toFloat()
@@ -27,20 +24,14 @@ class MapView : View {
     private lateinit var grids: Array<Array<Grid>>
 
     private var wallPaint: Paint
-    private var robotPaint: Paint
-    private var waypointPaint: Paint
-    private var directionPaint: Paint
     private var emptyPaint: Paint
     private var unexploredPaint: Paint
-    private var ftpPaint: Paint
-    private var gridNumberPaint: Paint
-
     private var gridGenerated = false
     private var mapUpdated = false
 
-    private lateinit var destList: ArrayList<DestinationBeacon>
+    private lateinit var beaconList: ArrayList<Beacon>
     private lateinit var startPos: Coordinate
-    private lateinit var idealQueue: ArrayList<DestinationBeacon>
+    private lateinit var idealQueue: ArrayList<Beacon>
     private lateinit var pathTaken : ArrayList<Coordinate>
 
     constructor(context: Context) : this(context, null)
@@ -53,18 +44,6 @@ class MapView : View {
         wallPaint.color = Color.BLACK
         wallPaint.strokeWidth = WallThickness
 
-        //COLOR FOR ROBOT
-        robotPaint = Paint()
-        robotPaint.color = Color.GREEN
-
-        //COLOR FOR ROBOT DIRECTION
-        directionPaint = Paint()
-        directionPaint.color = Color.BLACK
-
-        //COLOR FOR WAY POINT
-        waypointPaint = Paint()
-        waypointPaint.color = Color.YELLOW
-
         //COLOR FOR EXPLORED BUT EMPTY
         emptyPaint = Paint()
         emptyPaint.color = Color.WHITE
@@ -73,19 +52,9 @@ class MapView : View {
         unexploredPaint = Paint()
         unexploredPaint.color = ContextCompat.getColor(context!!, R.color.icy_marshmallow)
 
-        gridNumberPaint = Paint()
-        gridNumberPaint.color = Color.BLACK
-        gridNumberPaint.textSize = 18f
-        gridNumberPaint.typeface = Typeface.DEFAULT_BOLD
-
-        //COLOR FOR FASTEST PATH
-        ftpPaint = Paint()
-        ftpPaint.color = Color.parseColor("#FFC0CB")
     }
 
     override fun onDraw(canvas: Canvas) {
-        Log.d(debugTAG, "Painting now!!")
-
         super.onDraw(canvas)
 
         //BACKGROUND COLOR OF CANVAS
@@ -100,7 +69,6 @@ class MapView : View {
         //CALCULATE THE CELLSIZE BASED ON THE DIMENSIONS OF THE CANVAS
         if (width/height < maxX/maxY) {
             gridSize = (width / (maxX + 1))
-            Log.d(debugTAG, "ttt")
         } else {
             gridSize = (height / (maxY + 1))
         }
@@ -130,10 +98,12 @@ class MapView : View {
         //DRAW GRID NUMBER
         //drawGridNumber(canvas)
 
+        //canvas.rotate(180f,canvas.getWidth()/2.toFloat(),canvas.getHeight()/2.toFloat())
+
         //DRAW MAP
-//        if (!mapUpdated) {
-//            drawMap(canvas)
-//        }
+        if (mapUpdated) {
+            drawMap(canvas)
+        }
     }
 
     //CREATE GRID METHOD
@@ -191,55 +161,96 @@ class MapView : View {
         }
     }
 
-    //DRAW NUMBERS ON MAP GRID
-    private fun drawGridNumber(canvas: Canvas) {
-
-        //GRID NUMBER FOR ROW
-        for (x in 0..maxX-1) {
-            if (x > 9 && x < 15) {
-                canvas.drawText(Integer.toString(x), grids[x][19].startX + gridSize / 5, grids[x][19].endY + gridSize / 1.5f, gridNumberPaint)
-            } else {
-                //GRID NUMBER FOR ROW
-                canvas.drawText(Integer.toString(x), grids[x][19].startX + gridSize / 3, grids[x][19].endY + gridSize / 1.5f, gridNumberPaint)
-            }
-        }
-
-        //GRID NUMBER FOR COLUMN
-        for (x in 0..maxY-1) {
-            if (x > 9 && x < 20) {
-                canvas.drawText(Integer.toString(19 - x), grids[0][x].startX - gridSize / 1.5f, grids[0][x].endY - gridSize / 3.5f, gridNumberPaint)
-            } else {
-                canvas.drawText(Integer.toString(19 - x), grids[0][x].startX - gridSize / 1.2f, grids[0][x].endY - gridSize / 3.5f, gridNumberPaint)
-
-            }
-        }
-    }
-
     //DRAW MAP ON THE CANVAS
     private fun drawMap(canvas: Canvas) {
-//        if (wayPointRow != -1 && wayPointCols != -1) {
-//            canvas.drawRect(cells[wayPointCols][wayPointRow].startX, cells[wayPointCols][wayPointRow].startY, cells[wayPointCols][wayPointRow].endX, cells[wayPointCols][wayPointRow].endY, waypointPaint)
-//        }
+        Handler().postDelayed({
 
-        for (i in destList) {
+        }, 5000)
+
+        for (i in beaconList) {
             //draw beacons
-            val bmp = Bitmap.createScaledBitmap(BitmapFactory.decodeResource(resources, R.drawable.move_forward), gridSize.roundToInt()-4, gridSize.roundToInt()-4, true);
-            canvas.drawBitmap(bmp, grids[i.coordinate.x.roundToInt()][i.coordinate.y.roundToInt()].startX-4, grids[i.coordinate.x.roundToInt()][i.coordinate.y.roundToInt()].startY-4, null)        }
+            Log.d(debugTAG, " bList beacon name = " + i.name + " x = " + i.coordinate.x + ", y = " + i.coordinate.y)
 
-        for (i in idealQueue) {
-
+            val bmp = Bitmap.createScaledBitmap(BitmapFactory.decodeResource(resources, R.drawable.move_forward), gridSize.roundToInt()-4, gridSize.roundToInt()-4, true)
+            canvas.drawBitmap(bmp, grids[i.coordinate.x.roundToInt()][i.coordinate.y.roundToInt()].startY-4, grids[i.coordinate.x.roundToInt()][i.coordinate.y.roundToInt()].startY-4, null)
         }
 
-        for (i in pathTaken) {
+        //not last element yet
+        var queuePaint = Paint()
+        queuePaint.color = Color.GREEN
+        queuePaint.strokeWidth = gridSize/2
+        queuePaint.style = Paint.Style.STROKE
 
+
+        //not last element yet
+        var pathPaint = Paint()
+        pathPaint.color = Color.RED
+        pathPaint.strokeWidth = gridSize/2
+        pathPaint.style = Paint.Style.STROKE
+
+        var queue = Path()
+
+        for ((i, beacon) in idealQueue.withIndex()) {
+            Log.d(debugTAG, " idealQueue beacon name = " + beacon.name + " x = " + beacon.coordinate.x + ", y = " + beacon.coordinate.y)
+
+//            if (i != idealQueue.size - 1) {
+//                canvas.drawLine(
+//                        beacon.coordinate.x.toFloat() * gridSize,
+//                        beacon.coordinate.y.toFloat() * gridSize,
+//                        idealQueue[i + 1].coordinate.x.toFloat() * gridSize,
+//                        idealQueue[i + 1].coordinate.y.toFloat() * gridSize,
+//                        queuePaint)
+//            }
+            if (i != 0) {
+                queue.lineTo(beacon.coordinate.x.toFloat() * gridSize, beacon.coordinate.y.toFloat() * gridSize)
+            } else {
+                queue.moveTo(beacon.coordinate.x.toFloat() * gridSize, beacon.coordinate.y.toFloat() * gridSize)
+            }
         }
+
+        canvas.drawPath(queue, queuePaint)
+
+
+        var path = Path()
+
+        for ((i, coord) in pathTaken.withIndex()) {
+            Log.d(debugTAG, " pathTaken name = x = " + coord.x + ", y = " + coord.y)
+
+//            if (i != pathTaken.size - 1) {
+//                canvas.drawLine(
+//                        coord.x.toFloat() * gridSize + gridSize / 4,
+//                        coord.y.toFloat() * gridSize + gridSize / 4,
+//                        pathTaken[i + 1].x.toFloat() * gridSize + gridSize / 4,
+//                        pathTaken[i + 1].y.toFloat() * gridSize + gridSize / 4,
+//                        pathPaint)
+//            }
+            if (i != 0) {
+                path.lineTo(coord.x.toFloat() * gridSize, coord.y.toFloat() * gridSize)
+            } else {
+                path.moveTo(coord.x.toFloat() * gridSize, coord.y.toFloat() * gridSize)
+            }
+        }
+
+        canvas.drawPath(path, pathPaint)
     }
 
-    fun updateMap(destList: ArrayList<DestinationBeacon>, startPos: Coordinate, idealQueue: ArrayList<DestinationBeacon>, pathTaken: ArrayList<Coordinate>) {
-        this.destList = destList
+    fun updateMap(beaconList: ArrayList<Beacon>, startPos: Coordinate, idealQueue: ArrayList<Beacon>, pathTaken: ArrayList<Coordinate>) {
         this.startPos = startPos
         this.idealQueue = idealQueue
         this.pathTaken = pathTaken
+        this.beaconList = beaconList
+
+        for (i in beaconList) {
+            if (i.coordinate.x > maxX) {
+                maxX = i.coordinate.x.toInt()
+            }
+            if (i.coordinate.y > maxY) {
+                maxY = i.coordinate.y.toInt()
+            }
+        }
+
+        maxX+=1
+        maxY+=1
 
         mapUpdated = true
         invalidate()
@@ -259,5 +270,10 @@ class MapView : View {
             this.endY = endY
             this.paint = paint
         }
+    }
+
+    fun Bitmap.rotate(degrees: Float): Bitmap {
+        val matrix = Matrix().apply { postRotate(degrees) }
+        return Bitmap.createBitmap(this, 0, 0, width, height, matrix, true)
     }
 }

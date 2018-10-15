@@ -2,21 +2,22 @@ package boonleng94.iguide
 
 import java.io.Serializable
 
-data class DestinationBeacon(val deviceID: String, var measuredPower: Int): Serializable, Cloneable{
+data class Beacon(val deviceID: String): Serializable, Cloneable {
+    var measuredPower = -1
     var distance = -1.0
     var coordinate = Coordinate(-1.0, -1.0)
     var name = "Beacon Name"
     var description = "Beacon Description"
 
     override fun equals(o: Any?): Boolean {
-        if (o is DestinationBeacon) {
-            val p = o as DestinationBeacon?
+        if (o is Beacon) {
+            val p = o as Beacon?
             return this.deviceID == (p!!.deviceID)
         } else
             return false
     }
 
-    public override fun clone(): DestinationBeacon{
+    public override fun clone(): Beacon{
         try {
             super.clone()
         } catch (e: CloneNotSupportedException ) {
@@ -26,3 +27,5 @@ data class DestinationBeacon(val deviceID: String, var measuredPower: Int): Seri
         return this
     }
 }
+
+data class Map(val mapID: String, val beaconList: ArrayList<Beacon>)

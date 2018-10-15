@@ -22,8 +22,8 @@ import android.widget.TextView
 import com.estimote.proximity_sdk.api.ProximityObserver
 import com.estimote.proximity_sdk.api.ProximityObserverBuilder
 import com.estimote.proximity_sdk.api.ProximityZoneBuilder
-
 import kotlinx.android.synthetic.main.activity_dest.*
+import kotlinx.android.synthetic.main.activity_map.*
 
 import java.util.*
 
@@ -39,9 +39,8 @@ class MainDestinationsActivity : AppCompatActivity() {
     private lateinit var mSpeechRecognizer: SpeechRecognizer
     private lateinit var mSpeechRecognizerIntent: Intent
     private lateinit var mSpeechRecognitionListener: SpeechRecognitionListener
-
-    private var destList = ArrayList<DestinationBeacon>()
-    private var viewList = ArrayList<TextView>()
+    private lateinit var detectedBeaconsList: ArrayList<Beacon>
+    
     private var displayList = ArrayList<String>()
 
     private var destOutputString = StringBuilder("Where would you like to go? ")
@@ -50,19 +49,25 @@ class MainDestinationsActivity : AppCompatActivity() {
 
     private var doneSpeech = false
 
+    private var listOfMaps = ArrayList<Map>()
+    private var mapCreated = false
+    private lateinit var map: Map
+
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
         setContentView(R.layout.activity_dest)
-
-        createNotificationChannel()
 
         TTSCtrl = (application as MainApp).speech
         TTSOutput = "Please wait as I find destinations..."
         TTSCtrl.speakOut(TTSOutput)
 
-        destList = (application as MainApp).destList
+        detectedBeaconsList = intent.getSerializableExtra("detectedBeaconsList") as ArrayList<Beacon>
+
+        listOfMaps.add(generateN42cMap())
 
         initializeListeners()
+
+        createNotificationChannel()
 
         val notif = NotificationCompat.Builder(this, (application as MainApp).channelID)
                 .setContentTitle(getString(R.string.app_name))
@@ -82,7 +87,7 @@ class MainDestinationsActivity : AppCompatActivity() {
                 .build()
 
         //Build A ProximityZone to find Beacons with tag 'corridor' within 20m distance
-        //2. Get beacons in the corridor, get the coordinate of the beacon and put into destList of beacons that match the deviceID
+        //2. Get beacons in the corridor, find out what map user is in, get the coordinate of the beacons from the map and put into detectedBeaconsList of beacons that match the deviceID
         val corridorZone = ProximityZoneBuilder()
                 .forTag("corridor")
                 .inCustomRange(20.0)
@@ -92,47 +97,39 @@ class MainDestinationsActivity : AppCompatActivity() {
                     val name = beacon.attachments["name"]
                     val description = beacon.attachments["description"]
 
-                    Log.d(debugTAG, "Entered destination beacon $name, description: $description")
-                }
-                .onExit {
-                    Log.d(debugTAG, "Exit destination beacon")
+                    Log.d(debugTAG, "Entered beacon $name, description: $description")
 
-                }
-                .onContextChange {
-                    //get all beacons
-                    allDests ->
-                    if (!allDests.isEmpty()) {
-                        allDests.iterator().forEach { beacon ->
-                            val destDeviceID = beacon.deviceId
-                            val name = beacon.attachments["name"]!!
-                            val coordinate = beacon.attachments["coordinate"]!!
-                            val description = beacon.attachments["description"]!!
+                    if (!mapCreated) {
+                        val mapName = name!!.substring(0, 6)
 
-                            if (destList.isNotEmpty()) {
-                                for (i in destList) {
-                                    if (i.deviceID.equals(destDeviceID, true)) {
-                                        i.coordinate = Coordinate(coordinate.split(',')[0].trim().toDouble(), coordinate.split(',')[1].trim().toDouble())
-                                        i.name = name
-                                        i.description = description
+                        Log.d(debugTAG, "mapName = $mapName")
 
-                                        if (!displayList.contains(i.name)) {
-                                            Log.d(debugTAG, "onContextChange - Device IDs: $destDeviceID, $name, $description, $coordinate")
+                        for (i in listOfMaps) {
+                            if (i.mapID == mapName) {
+                                mapCreated = true
+                                map = i
+                                generateDisplayList(i)
 
-                                            val tvDest = TextView(this)
-                                            tvDest.gravity = Gravity.CENTER_HORIZONTAL
-                                            tvDest.textSize = 24f
-                                            tvDest.isClickable = false
-                                            tvDest.text = i.name
-
-                                            displayList.add(i.name)
-                                            viewList.add(tvDest)
-                                            sv_linear_layout.addView(tvDest)
+                                if (detectedBeaconsList.isNotEmpty()) {
+                                    for (j in detectedBeaconsList) {
+                                        for (k in i.beaconList) {
+                                            if (j.deviceID.equals(k.deviceID, true)) {
+                                                j.coordinate = k.coordinate
+                                            }
                                         }
                                     }
                                 }
+
+                                break
                             }
                         }
                     }
+                }
+                .onExit {
+                    Log.d(debugTAG, "Exit beacon")
+                }
+                .onContextChange {
+
                 }
                 .build()
 
@@ -140,7 +137,7 @@ class MainDestinationsActivity : AppCompatActivity() {
 
         //After scanning for beacons for 5s
         Handler().postDelayed({
-            if (viewList.isNotEmpty()) {
+            if (displayList.isNotEmpty()) {
                 destObsHandler.stop()
                 readDestinations()
             } else {
@@ -172,8 +169,8 @@ class MainDestinationsActivity : AppCompatActivity() {
     private fun readDestinations() {
         var index = 1
 
-        for (i in viewList) {
-            destOutputString.append(". $index. ${i.text}. ")
+        for (i in displayList) {
+            destOutputString.append(". $index. ${i}. ")
             index++
         }
 
@@ -202,7 +199,7 @@ class MainDestinationsActivity : AppCompatActivity() {
         }
     }
 
-    private fun startNavigation(destBeacon: DestinationBeacon) {
+    private fun startNavigation(destBeaconName: String) {
         destObsHandler.stop()
         shakeDetector.stop()
         mSpeechRecognizer.destroy()
@@ -211,15 +208,24 @@ class MainDestinationsActivity : AppCompatActivity() {
             compass.stop()
         }, 2000)
 
+        var destBeacon = Beacon("Beacon")
+
+        for (i in map.beaconList) {
+            if (i.name == destBeaconName) {
+                destBeacon = i
+            }
+        }
+
         Handler().postDelayed( {
-            val currentPos =  Navigator().findUserPos(destList)
+            val currentPos =  Navigator().findUserPos(detectedBeaconsList)
             (application as MainApp).startPos = currentPos
 
             //done here and finish() to prevent memory error
             val nav = Navigator()
-            val nextBeacon = nav.findNextNearest(currentPos, destList)
-            nav.initialize(nextBeacon.coordinate, userOrientation, destBeacon.coordinate, destList)
-            val idealQueue = nav.executeFastestPath() as LinkedList<DestinationBeacon>
+            val nextBeacon = nav.findNextNearest(currentPos, detectedBeaconsList)
+
+            nav.initialize(nextBeacon.coordinate, userOrientation, destBeacon.coordinate, map.beaconList)
+            val idealQueue = nav.executeFastestPath() as LinkedList<Beacon>
 
             val intent = Intent(applicationContext, MainNavigationActivity::class.java)
             intent.putExtra("destination", destBeacon)
@@ -227,6 +233,7 @@ class MainDestinationsActivity : AppCompatActivity() {
             intent.putExtra("currentOrientation", userOrientation)
             intent.putExtra("nextBeacon", nextBeacon)
             intent.putExtra("idealQueue", idealQueue)
+            intent.putExtra("beaconList", map.beaconList)
             startActivity(intent)
             finish()
         }, 5000)
@@ -376,7 +383,7 @@ class MainDestinationsActivity : AppCompatActivity() {
 
             if (matches.isNotEmpty()) {
                 for ((index,i) in displayList.withIndex()) {
-                    if (matches.contains(i.toLowerCase())) {
+                    if (matches.contains(i.toLowerCase()) || matches.contains(i)) {
                         choice = index
                         break
                     } else if (matches.contains(intMap.getValue(index+1)) || matches.contains((index+1).toString())) {
@@ -386,26 +393,14 @@ class MainDestinationsActivity : AppCompatActivity() {
                 }
 
                 if (choice != -1) {
-                    var destBeacon = DestinationBeacon("Beacon", 0)
                     val dest = displayList[choice]
 
-                    for (i in destList) {
-                        if (i.name.equals(dest, true)) {
-                            destBeacon = i
-                            break
-                        }
-                    }
-
                     //Start navigation to choice
-                    if (destBeacon.deviceID != "Beacon") {
-                        choice += 1
-                        val output = "You have chosen to go to choice $choice ..., $dest ... Please wait as I find your orientation"
-                        TTSCtrl.speakOut(output)
+                    choice += 1
+                    val output = "You have chosen to go to choice $choice ..., $dest ... Please wait as I find your orientation"
+                    TTSCtrl.speakOut(output)
 
-                        Log.d(debugTAG, output)
-
-                        startNavigation(destBeacon)
-                    }
+                    startNavigation(dest)
                 } else {
                     val TTSUPL = object: UtteranceProgressListener() {
                         override fun onDone(utteranceId: String?) {
@@ -464,4 +459,89 @@ class MainDestinationsActivity : AppCompatActivity() {
             notificationManager!!.createNotificationChannel(channel)
         }
     }
+
+    fun generateN42cMap(): Map {
+        var beaconList = ArrayList<Beacon>()
+
+        val cf1 = Beacon("08521b848f630526cdf23fe40044913d")
+        cf1.name = "Placeholder"
+        cf1.coordinate = Coordinate(40.0,0.0)
+
+        val cf2 = Beacon("bf96d1619008c20716ddafbf69747424")
+        cf2.name = "Placeholder"
+        cf2.coordinate = Coordinate(40.0,2.0)
+
+        val cf3 = Beacon("d137249e154e746b32fe0f25c89cfa05")
+        cf3.name = "Placeholder"
+        cf3.coordinate = Coordinate(0.0,2.0)
+
+        val cf4 = Beacon("21406f9c93238e88db98ec7fca351d20")
+        cf4.name = "Entrance of Block B"
+        cf4.coordinate = Coordinate(0.0,0.0)
+
+        val lt1 = Beacon("c99857c5c5a01cdc348e02bb878c3b1d")
+        lt1.name = "N4-02c-88"
+        lt1.coordinate = Coordinate(35.0,2.0)
+
+        val lt2 = Beacon("c449d2e64acc028dc214a74d53087827")
+        lt2.name = "N4-02c-86"
+        lt2.coordinate = Coordinate(31.0,2.0)
+
+        val lt3 = Beacon("9176b3b9b95e4e6d69212c56fa21fe20")
+        lt3.name = "N4-02c-84"
+        lt3.coordinate = Coordinate(27.0,2.0)
+
+        val lt4 = Beacon("881c05b08a25c096cbd4deaedfc6c70f")
+        lt4.name = "N4-02c-82"
+        lt4.coordinate = Coordinate(23.0,2.0)
+
+        val br1 = Beacon("7d682761535f52f943994e8c8ef57613")
+        br1.name = "N4-02c-80"
+        br1.coordinate = Coordinate(19.0,2.0)
+
+        val br2 = Beacon("99d3734cf5f35999cddc66e499b0f51e")
+        br2.name = "N4-02c-78"
+        br2.coordinate = Coordinate(15.0,2.0)
+
+        val br3 = Beacon("4698eda62f2def1aef341553fa41b51c")
+        br3.name = "N4-02c-76"
+        br3.coordinate = Coordinate(11.0,2.0)
+
+        val br4 = Beacon("e65c0c815eb675f11cad88bef67e1335")
+        br4.name = "N4-02c-74"
+        br4.coordinate = Coordinate(7.0,2.0)
+
+        beaconList.add(cf1)
+        beaconList.add(cf2)
+        beaconList.add(cf3)
+        beaconList.add(cf4)
+        beaconList.add(lt1)
+        beaconList.add(lt2)
+        beaconList.add(lt3)
+        beaconList.add(lt4)
+        beaconList.add(br1)
+        beaconList.add(br2)
+        beaconList.add(br3)
+        beaconList.add(br4)
+
+        val map = Map("N4-02c", beaconList)
+
+        return map
+    }
+
+    fun generateDisplayList(map: Map) {
+        for (i in map.beaconList) {
+            if (i.name != "Placeholder") {
+                val tvDest = TextView(this)
+                tvDest.gravity = Gravity.CENTER_HORIZONTAL
+                tvDest.textSize = 24f
+                tvDest.isClickable = false
+                tvDest.text = i.name
+
+                displayList.add(i.name)
+                sv_linear_layout.addView(tvDest)
+            }
+        }
+    }
+
 }
