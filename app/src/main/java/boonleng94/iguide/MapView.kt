@@ -9,6 +9,13 @@ import android.util.AttributeSet
 import android.util.Log
 import android.view.View
 import kotlin.math.roundToInt
+import android.R.attr.radius
+import android.graphics.CornerPathEffect
+import android.graphics.Typeface
+
+
+
+
 
 class MapView : View {
     private val debugTAG = "MapView"
@@ -98,8 +105,6 @@ class MapView : View {
         //DRAW GRID NUMBER
         //drawGridNumber(canvas)
 
-        //canvas.rotate(180f,canvas.getWidth()/2.toFloat(),canvas.getHeight()/2.toFloat())
-
         //DRAW MAP
         if (mapUpdated) {
             drawMap(canvas)
@@ -171,22 +176,28 @@ class MapView : View {
             //draw beacons
             Log.d(debugTAG, " bList beacon name = " + i.name + " x = " + i.coordinate.x + ", y = " + i.coordinate.y)
 
-            val bmp = Bitmap.createScaledBitmap(BitmapFactory.decodeResource(resources, R.drawable.move_forward), gridSize.roundToInt()-4, gridSize.roundToInt()-4, true)
-            canvas.drawBitmap(bmp, grids[i.coordinate.x.roundToInt()][i.coordinate.y.roundToInt()].startY-4, grids[i.coordinate.x.roundToInt()][i.coordinate.y.roundToInt()].startY-4, null)
+            val bmp = Bitmap.createScaledBitmap(BitmapFactory.decodeResource(resources, R.drawable.beacon_gray), gridSize.roundToInt(), gridSize.roundToInt(), true)
+            canvas.drawBitmap(bmp, grids[i.coordinate.x.roundToInt()][i.coordinate.y.roundToInt()].startX-4, grids[i.coordinate.x.roundToInt()][i.coordinate.y.roundToInt()].startY-4, null)
         }
+
+
+        val corEffect = CornerPathEffect(gridSize/6.toFloat())
 
         //not last element yet
         var queuePaint = Paint()
         queuePaint.color = Color.GREEN
         queuePaint.strokeWidth = gridSize/2
         queuePaint.style = Paint.Style.STROKE
-
+        queuePaint.pathEffect = corEffect
+        queuePaint.alpha = 150
 
         //not last element yet
         var pathPaint = Paint()
         pathPaint.color = Color.RED
-        pathPaint.strokeWidth = gridSize/2
+        pathPaint.strokeWidth = gridSize/6
         pathPaint.style = Paint.Style.STROKE
+        pathPaint.pathEffect = corEffect
+        pathPaint.alpha = 100
 
         var queue = Path()
 
@@ -202,9 +213,25 @@ class MapView : View {
 //                        queuePaint)
 //            }
             if (i != 0) {
-                queue.lineTo(beacon.coordinate.x.toFloat() * gridSize, beacon.coordinate.y.toFloat() * gridSize)
+                queue.lineTo(beacon.coordinate.x.toFloat() * gridSize + gridSize/2, beacon.coordinate.y.toFloat() * gridSize + gridSize/2)
             } else {
-                queue.moveTo(beacon.coordinate.x.toFloat() * gridSize, beacon.coordinate.y.toFloat() * gridSize)
+                queue.moveTo(beacon.coordinate.x.toFloat() * gridSize + gridSize/2, beacon.coordinate.y.toFloat() * gridSize + gridSize/2)
+            }
+
+            if (i == idealQueue.size-1) {
+                val endPaint = Paint()
+                endPaint.color = Color.GREEN
+                endPaint.strokeWidth = gridSize/6
+                endPaint.style = Paint.Style.STROKE
+                endPaint.alpha = 150
+                canvas.drawLine(beacon.coordinate.x.toFloat(), beacon.coordinate.y.toFloat(), beacon.coordinate.x.toFloat() + gridSize, beacon.coordinate.y.toFloat() + gridSize, endPaint)
+                canvas.drawLine(beacon.coordinate.x.toFloat(), beacon.coordinate.y.toFloat() + gridSize, beacon.coordinate.x.toFloat() + gridSize, beacon.coordinate.y.toFloat(), endPaint)
+
+                val endTextPaint = Paint()
+                endTextPaint.color = Color.BLACK
+                endTextPaint.textSize = 50f
+                endTextPaint.typeface = Typeface.DEFAULT_BOLD
+                canvas.drawText("END", beacon.coordinate.x.toFloat() * gridSize - gridSize, beacon.coordinate.y.toFloat() * gridSize + gridSize*2/3, endTextPaint);
             }
         }
 
@@ -212,6 +239,8 @@ class MapView : View {
 
 
         var path = Path()
+
+        path.moveTo(startPos.x.toFloat() * gridSize + gridSize/2, startPos.y.toFloat() * gridSize + gridSize/2)
 
         for ((i, coord) in pathTaken.withIndex()) {
             Log.d(debugTAG, " pathTaken name = x = " + coord.x + ", y = " + coord.y)
@@ -224,14 +253,23 @@ class MapView : View {
 //                        pathTaken[i + 1].y.toFloat() * gridSize + gridSize / 4,
 //                        pathPaint)
 //            }
-            if (i != 0) {
-                path.lineTo(coord.x.toFloat() * gridSize, coord.y.toFloat() * gridSize)
-            } else {
-                path.moveTo(coord.x.toFloat() * gridSize, coord.y.toFloat() * gridSize)
-            }
+            path.lineTo(coord.x.toFloat() * gridSize + gridSize/2, coord.y.toFloat() * gridSize + gridSize/2)
+//
+//            if (i != 0) {
+//                path.lineTo(coord.x.toFloat() * gridSize + gridSize/2, coord.y.toFloat() * gridSize + gridSize/2)
+//            } else {
+//                path.moveTo(coord.x.toFloat() * gridSize + gridSize/2, coord.y.toFloat() * gridSize + gridSize/2)
+//            }
         }
 
         canvas.drawPath(path, pathPaint)
+
+        var circlePaint = Paint()
+        circlePaint.color = Color.RED
+        circlePaint.style = Paint.Style.FILL
+        circlePaint.alpha = 180
+
+        canvas.drawCircle(startPos.x.toFloat() * gridSize + gridSize/2, startPos.y.toFloat() * gridSize + gridSize/2, gridSize/3, circlePaint)
     }
 
     fun updateMap(beaconList: ArrayList<Beacon>, startPos: Coordinate, idealQueue: ArrayList<Beacon>, pathTaken: ArrayList<Coordinate>) {
