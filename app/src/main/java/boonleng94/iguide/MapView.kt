@@ -31,7 +31,6 @@ class MapView : View {
     private lateinit var grids: Array<Array<Grid>>
 
     private var wallPaint: Paint
-    private var emptyPaint: Paint
     private var unexploredPaint: Paint
     private var gridGenerated = false
     private var mapUpdated = false
@@ -51,13 +50,9 @@ class MapView : View {
         wallPaint.color = Color.BLACK
         wallPaint.strokeWidth = WallThickness
 
-        //COLOR FOR EXPLORED BUT EMPTY
-        emptyPaint = Paint()
-        emptyPaint.color = Color.WHITE
-
         //COLOR FOR UNEXPLORED PATH
         unexploredPaint = Paint()
-        unexploredPaint.color = ContextCompat.getColor(context!!, R.color.icy_marshmallow)
+        unexploredPaint.color = ContextCompat.getColor(context!!, R.color.light_gray)
 
     }
 
@@ -177,7 +172,7 @@ class MapView : View {
             Log.d(debugTAG, " bList beacon name = " + i.name + " x = " + i.coordinate.x + ", y = " + i.coordinate.y)
 
             val bmp = Bitmap.createScaledBitmap(BitmapFactory.decodeResource(resources, R.drawable.beacon_gray), gridSize.roundToInt(), gridSize.roundToInt(), true)
-            canvas.drawBitmap(bmp, grids[i.coordinate.x.roundToInt()][i.coordinate.y.roundToInt()].startX-4, grids[i.coordinate.x.roundToInt()][i.coordinate.y.roundToInt()].startY-4, null)
+            canvas.drawBitmap(bmp, grids[i.coordinate.x.toInt()][i.coordinate.y.toInt()].startX-4, grids[i.coordinate.x.toInt()][i.coordinate.y.toInt()].startY-4, null)
         }
 
 
@@ -308,10 +303,5 @@ class MapView : View {
             this.endY = endY
             this.paint = paint
         }
-    }
-
-    fun Bitmap.rotate(degrees: Float): Bitmap {
-        val matrix = Matrix().apply { postRotate(degrees) }
-        return Bitmap.createBitmap(this, 0, 0, width, height, matrix, true)
     }
 }

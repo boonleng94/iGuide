@@ -16,34 +16,37 @@ import com.google.android.gms.tasks.Task
 
 class BGMvmtDetectionService : Service() {
     companion object {
-        private val TAG = "BGMvmtDetectionService"
+        private val debugTAG = "BGMvmtDetectionService"
     }
 
     private var mIntentService: Intent? = null
     private var mPendingIntent: PendingIntent? = null
     private var mActivityRecognitionClient: ActivityRecognitionClient? = null
 
-    internal var mBinder: IBinder = BGMvmtDetectionService().LocalBinder()
-
-    inner class LocalBinder : Binder() {
-        val serverInstance: BGMvmtDetectionService
-            get() = this@BGMvmtDetectionService
-    }
+//    var mBinder: IBinder = BGMvmtDetectionService().LocalBinder()
+//
+//    inner class LocalBinder : Binder() {
+//        val serverInstance: BGMvmtDetectionService
+//            get() = this@BGMvmtDetectionService
+//    }
 
     override fun onCreate() {
         super.onCreate()
+        Log.d(debugTAG, "BGMVMT created")
         mActivityRecognitionClient = ActivityRecognitionClient(this)
-        mIntentService = Intent(this, MovementDetectionService.javaClass)
+        mIntentService = Intent(this, MovementDetectionService::class.java)
         mPendingIntent = PendingIntent.getService(this, 1, mIntentService!!, PendingIntent.FLAG_UPDATE_CURRENT)
         requestActivityUpdatesButtonHandler()
     }
 
     override fun onBind(intent: Intent): IBinder? {
-        return mBinder
+        Log.d(debugTAG, "BGMVMT binding")
+        return null
     }
 
     override fun onStartCommand(intent: Intent, flags: Int, startId: Int): Int {
         super.onStartCommand(intent, flags, startId)
+        Log.d(debugTAG, "BGMVMT started")
         return Service.START_STICKY
     }
 

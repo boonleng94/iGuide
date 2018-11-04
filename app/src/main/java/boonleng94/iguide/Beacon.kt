@@ -6,7 +6,7 @@ data class Beacon(val deviceID: String): Serializable, Cloneable {
     var measuredPower = -1
     var distance = -1.0
     var coordinate = Coordinate(-1.0, -1.0)
-    var name = "Beacon Name"
+    var name = "Original Location"
     var description = "Beacon Description"
 
     override fun equals(o: Any?): Boolean {

@@ -14,6 +14,6 @@
     <color name="dark_green">#597C66</color>
     <color name="background_white">#FAFAFA</color>
     <color name="black">#000000</color>
-
+    <color name="bright_green">#72bb53</color>
     <color name="black_overlay">#66000000</color>
 </resources>

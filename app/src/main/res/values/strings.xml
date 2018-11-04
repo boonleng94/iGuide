@@ -8,9 +8,11 @@
     <string name="move">Move towards direction</string>
     <string name="enroute">You are enroute to:</string>
     <string name="astray">You are moving astray from:</string>
+    <string name="dest_reach">You have reached:</string>
     <string name="dest"><u>Destination 1</u></string>
     <string name="passby">You have just walked pass: </string>
     <string name="where_to_go">Where would you like to go?</string>
+    <string name="go_nearby">Would you like to go nearby?</string>
 
 
     <!-- STT TEST -->

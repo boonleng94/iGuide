@@ -19,7 +19,7 @@ class TTSController {
                     Log.e(debugTAG, "This Language is not supported")
                 }
                 talk.setSpeechRate(0.8F)
-                speakOut("Welcome to EyeGuide")
+                speakOut("Welcome to EyeGuide... ... Please wait and stay still as I find your current position...")
             } else {
                 Log.e(debugTAG, "TTS Initialization Error")
             }

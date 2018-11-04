@@ -302,9 +302,7 @@ class Navigator {
         var queue = LinkedList<Beacon>()
         var nextOrientation: Orientation
         var m: Direction?
-        val movementsToTake = ArrayList<Direction>()
         var temp = shortestPath.pop()
-        var forwardCounter = 0
 
         // While user is not at destination yet
         while (userPos.x != destination.x || userPos.y != destination.y) {
