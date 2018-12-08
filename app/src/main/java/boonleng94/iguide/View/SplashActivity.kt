@@ -1,4 +1,4 @@
-package boonleng94.iguide
+package boonleng94.iguide.View
 
 import android.Manifest
 import android.content.Intent
@@ -9,6 +9,11 @@ import android.support.v4.app.ActivityCompat
 import android.support.v7.app.AppCompatActivity
 import android.util.Log
 import android.view.Window
+import boonleng94.iguide.*
+import boonleng94.iguide.Controller.Navigator
+import boonleng94.iguide.Controller.RSSIFilter
+import boonleng94.iguide.Controller.TTSController
+import boonleng94.iguide.Model.Beacon
 
 import com.estimote.internal_plugins_api.scanning.ScanHandler
 import com.estimote.mustard.rx_goodness.rx_requirements_wizard.RequirementsWizardFactory
@@ -16,6 +21,7 @@ import com.estimote.scanning_plugin.api.EstimoteBluetoothScannerFactory
 
 import java.util.*
 
+//Splash Screen Activity for the application
 class SplashActivity : AppCompatActivity(){
     private val debugTAG = "SplashActivity"
 
@@ -52,8 +58,6 @@ class SplashActivity : AppCompatActivity(){
         supportActionBar?.hide()
         setContentView(R.layout.activity_splash)
 
-//        startActivity(Intent(applicationContext, MainMapActivity::class.java))
-
         TTSCtrl = TTSController()
         TTSCtrl.initialize(applicationContext, Locale.US)
         (application as MainApp).speech = TTSCtrl
@@ -78,16 +82,9 @@ class SplashActivity : AppCompatActivity(){
                                     val filter = RSSIFilter()
 
                                     for ((index, i) in allRssiList.withIndex()) {
-                                        //Log.d(debugTAG, "Index: " + index + " RSSIList: " + allRssiList[index])
-
                                         val filteredRssiList = filter.eliminateOutliers(i, 1.8f)
-                                        //Log.d(debugTAG, "Filtered RSSIList: " + filteredRssiList)
-
                                         val filteredRssi = filter.getMode(filteredRssiList)
-                                        //Log.d(debugTAG, "Filtered RSSI: " + filteredRssi)
-
                                         beaconList[index].distance = Navigator().computeDistance(filteredRssi, beaconList[index].measuredPower)
-                                        //Log.d(debugTAG, "For logging - Beacon DeviceID: " + beaconList[index].deviceID + ", Distance: " + beaconList[index].distance)
                                     }
 
                                     val intent = Intent(applicationContext, MainDestinationsActivity::class.java)
@@ -106,7 +103,6 @@ class SplashActivity : AppCompatActivity(){
                                     var beaconRSSIList = ArrayList<Int>()
                                     beaconRSSIList.add(packet.rssi)
                                     allRssiList.add(beaconRSSIList)
-                                    //Log.d(debugTAG, "Added to beaconList: " + beacon.deviceID + ", " + packet.rssi)
                                 } else if (beaconList.contains(beacon)) {
                                     val index = beaconList.indexOf(beacon)
                                     allRssiList[index].add(packet.rssi)

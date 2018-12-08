@@ -1,22 +1,19 @@
-package boonleng94.iguide
+package boonleng94.iguide.View
 
 import android.content.Context
-import android.content.Intent
 import android.graphics.*
 import android.os.Handler
 import android.support.v4.content.ContextCompat
 import android.util.AttributeSet
 import android.util.Log
 import android.view.View
+import boonleng94.iguide.Controller.Coordinate
+import boonleng94.iguide.Model.Beacon
+import boonleng94.iguide.R
+
 import kotlin.math.roundToInt
-import android.R.attr.radius
-import android.graphics.CornerPathEffect
-import android.graphics.Typeface
 
-
-
-
-
+//View class for the Map displaying actual path taken
 class MapView : View {
     private val debugTAG = "MapView"
 
@@ -45,12 +42,10 @@ class MapView : View {
     constructor(context: Context?, attrs: AttributeSet?) : super(context, attrs) {
         setWillNotDraw(false)
 
-        //PAINT THE THICKNESS OF THE WALL
         wallPaint = Paint()
         wallPaint.color = Color.BLACK
         wallPaint.strokeWidth = WallThickness
 
-        //COLOR FOR UNEXPLORED PATH
         unexploredPaint = Paint()
         unexploredPaint.color = ContextCompat.getColor(context!!, R.color.light_gray)
 
@@ -59,29 +54,19 @@ class MapView : View {
     override fun onDraw(canvas: Canvas) {
         super.onDraw(canvas)
 
-        //BACKGROUND COLOR OF CANVAS
         canvas.drawColor(Color.WHITE)
-        //WIDTH OF THE CANVAS
         val width = width.toFloat()
-        //HEIGHT OF THE CANVAS
         val height = height.toFloat()
 
-        Log.d(debugTAG, "height: $height, width: $width")
 
-        //CALCULATE THE CELLSIZE BASED ON THE DIMENSIONS OF THE CANVAS
         if (width/height < maxX/maxY) {
             gridSize = (width / (maxX + 1))
         } else {
             gridSize = (height / (maxY + 1))
         }
 
-        //CALCULATE MARGIN SIZE FOR THE CANVAS
         hMargin = (width - maxX * gridSize) / 2
         vMargin = (height - maxY * gridSize) / 2
-
-        Log.d(debugTAG, "gridsize: $gridSize")
-
-        Log.d(debugTAG, "hMargin: $hMargin, vMargin: $vMargin")
 
         //SET THE MARGIN IN PLACE
         canvas.translate(hMargin, vMargin)
@@ -91,14 +76,9 @@ class MapView : View {
             gridGenerated = true
         }
 
-        //DRAW BORDER FOR EACH GRID
         drawBorder(canvas)
-
-        //DRAW EACH INDIVIDUAL GRID
         drawGrid(canvas)
 
-        //DRAW GRID NUMBER
-        //drawGridNumber(canvas)
 
         //DRAW MAP
         if (mapUpdated) {
@@ -108,11 +88,11 @@ class MapView : View {
 
     //CREATE GRID METHOD
     private fun generateGrids() {
-        grids = Array(maxX, { Array<Grid>(maxY, {Grid()}) })
+        grids = Array(maxX, { Array<Grid>(maxY, { Grid() }) })
 
         for (i in 0 until maxX) {
             for (j in 0 until maxY) {
-                grids[i][j] = Grid (i*gridSize+gridSize/30, j*gridSize+gridSize/30, (i+1)*gridSize-gridSize/40, (j+1)*gridSize-gridSize/60, unexploredPaint)
+                grids[i][j] = Grid(i * gridSize + gridSize / 30, j * gridSize + gridSize / 30, (i + 1) * gridSize - gridSize / 40, (j + 1) * gridSize - gridSize / 60, unexploredPaint)
             }
         }
     }
@@ -122,25 +102,21 @@ class MapView : View {
         for (x in 0 until maxX) {
             for (y in 0 until maxY) {
 
-                //DRAW LINE FOR TOPWALL OF GRID
                 canvas.drawLine(
                         x * gridSize,
                         y * gridSize,
                         (x + 1) * gridSize,
                         y * gridSize, wallPaint)
-                //DRAW LINE FOR RIGHTWALL OF GRID
                 canvas.drawLine(
                         (x + 1) * gridSize,
                         y * gridSize,
                         (x + 1) * gridSize,
                         (y + 1) * gridSize, wallPaint)
-                //DRAW LINE FOR LEFTWALL OF GRID
                 canvas.drawLine(
                         x * gridSize,
                         y * gridSize,
                         x * gridSize,
                         (y + 1) * gridSize, wallPaint)
-                //DRAW LINE FOR BOTTOMWALL OF GRID
                 canvas.drawLine(
                         x * gridSize,
                         (y + 1) * gridSize,
@@ -154,7 +130,6 @@ class MapView : View {
     private fun drawGrid(canvas: Canvas) {
         for (x in 0 until maxX) {
             for (y in 0 until maxY) {
-                //DRAW EACH INDIVIDUAL GRID
                 canvas.drawRect(grids[x][y].startX, grids[x][y].startY, grids[x][y].endX, grids[x][y].endY, grids[x][y].paint)
 
             }
@@ -178,7 +153,6 @@ class MapView : View {
 
         val corEffect = CornerPathEffect(gridSize/6.toFloat())
 
-        //not last element yet
         var queuePaint = Paint()
         queuePaint.color = Color.GREEN
         queuePaint.strokeWidth = gridSize/2
@@ -186,7 +160,6 @@ class MapView : View {
         queuePaint.pathEffect = corEffect
         queuePaint.alpha = 150
 
-        //not last element yet
         var pathPaint = Paint()
         pathPaint.color = Color.RED
         pathPaint.strokeWidth = gridSize/6
@@ -199,14 +172,6 @@ class MapView : View {
         for ((i, beacon) in idealQueue.withIndex()) {
             Log.d(debugTAG, " idealQueue beacon name = " + beacon.name + " x = " + beacon.coordinate.x + ", y = " + beacon.coordinate.y)
 
-//            if (i != idealQueue.size - 1) {
-//                canvas.drawLine(
-//                        beacon.coordinate.x.toFloat() * gridSize,
-//                        beacon.coordinate.y.toFloat() * gridSize,
-//                        idealQueue[i + 1].coordinate.x.toFloat() * gridSize,
-//                        idealQueue[i + 1].coordinate.y.toFloat() * gridSize,
-//                        queuePaint)
-//            }
             if (i != 0) {
                 queue.lineTo(beacon.coordinate.x.toFloat() * gridSize + gridSize/2, beacon.coordinate.y.toFloat() * gridSize + gridSize/2)
             } else {
@@ -238,23 +203,7 @@ class MapView : View {
         path.moveTo(startPos.x.toFloat() * gridSize + gridSize/2, startPos.y.toFloat() * gridSize + gridSize/2)
 
         for ((i, coord) in pathTaken.withIndex()) {
-            Log.d(debugTAG, " pathTaken name = x = " + coord.x + ", y = " + coord.y)
-
-//            if (i != pathTaken.size - 1) {
-//                canvas.drawLine(
-//                        coord.x.toFloat() * gridSize + gridSize / 4,
-//                        coord.y.toFloat() * gridSize + gridSize / 4,
-//                        pathTaken[i + 1].x.toFloat() * gridSize + gridSize / 4,
-//                        pathTaken[i + 1].y.toFloat() * gridSize + gridSize / 4,
-//                        pathPaint)
-//            }
             path.lineTo(coord.x.toFloat() * gridSize + gridSize/2, coord.y.toFloat() * gridSize + gridSize/2)
-//
-//            if (i != 0) {
-//                path.lineTo(coord.x.toFloat() * gridSize + gridSize/2, coord.y.toFloat() * gridSize + gridSize/2)
-//            } else {
-//                path.moveTo(coord.x.toFloat() * gridSize + gridSize/2, coord.y.toFloat() * gridSize + gridSize/2)
-//            }
         }
 
         canvas.drawPath(path, pathPaint)

@@ -1,4 +1,4 @@
-package boonleng94.iguide
+package boonleng94.iguide.Controller
 
 import android.content.Context
 import android.hardware.Sensor
@@ -8,10 +8,12 @@ import android.hardware.SensorManager
 
 import kotlin.math.sqrt
 
+//ShakeListener interface
 interface ShakeListener {
     fun onShake(count: Int)
 }
 
+//ShakeDetector object for detecting shakes by the user (need to adjust threshold if user is a light/vigorous phone shaker)
 class ShakeDetector(context: Context) : SensorEventListener {
     lateinit var shakeListener: ShakeListener
 

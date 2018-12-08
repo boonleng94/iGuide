@@ -1,7 +1,8 @@
-package boonleng94.iguide
+package boonleng94.iguide.View
 
 import android.app.NotificationManager
 import android.content.Intent
+import android.graphics.Color
 import android.os.Bundle
 import android.os.Handler
 import android.support.v4.app.NotificationCompat
@@ -9,27 +10,27 @@ import android.support.v7.app.AppCompatActivity
 import android.util.Log
 import android.view.GestureDetector
 import android.view.MotionEvent
+import android.view.View
+import android.view.animation.AlphaAnimation
+import android.view.animation.Animation
 import android.widget.ImageView
 import android.widget.TextView
 import android.widget.Toast
+import boonleng94.iguide.*
+import boonleng94.iguide.Controller.*
+import boonleng94.iguide.Model.*
 
 import com.estimote.proximity_sdk.api.ProximityObserver
 import com.estimote.proximity_sdk.api.ProximityObserverBuilder
 import com.estimote.proximity_sdk.api.ProximityZoneBuilder
 
-import java.util.*
 import kotlin.collections.ArrayList
-
 import kotlin.math.absoluteValue
 import kotlin.math.roundToInt
 
-import android.graphics.Color
-import android.os.CountDownTimer
-import android.speech.tts.UtteranceProgressListener
-import android.view.View
-import android.view.animation.AlphaAnimation
-import android.view.animation.Animation
+import java.util.*
 
+//Activity class for the UI for reading destinations available
 class MainNavigationActivity: AppCompatActivity(){
     private val debugTAG = "MainNavigationActivity"
 
@@ -37,16 +38,13 @@ class MainNavigationActivity: AppCompatActivity(){
     private lateinit var shakeDetector: ShakeDetector
     private lateinit var gestureDetector: GestureDetector
     private lateinit var alphaAnim : AlphaAnimation
-
     private lateinit var TTSCtrl: TTSController
     private lateinit var compass: Compass
     private lateinit var currentOrientation: Orientation
-
     private lateinit var directionIv: ImageView
     private lateinit var destTv: TextView
     private lateinit var destTopTv: TextView
     private lateinit var passbyTv: TextView
-
     private lateinit var nextBeacon: Beacon
     private lateinit var destination: Beacon
     private lateinit var currentPos: Coordinate
@@ -54,13 +52,12 @@ class MainNavigationActivity: AppCompatActivity(){
 
     private var inBeacon = false
     private var doubleTap = false
-
     private var handler = Handler()
-    val nav = Navigator()
     private var idealQueue: Queue<Beacon> = LinkedList<Beacon>()
     private var pathTaken: Queue<Coordinate> = LinkedList<Coordinate>()
-
     private var TTSOutput = "Eye Guide"
+
+    val nav = Navigator()
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
@@ -201,7 +198,7 @@ class MainNavigationActivity: AppCompatActivity(){
                 }
                 .build()
 
-        //Build A ProximityZone to find Beacons with tag 'corridor' within 1m distance
+        //Build A ProximityZone to find Beacons with tag 'corridor' within 1m distance (Adjust accordingly to environment, need to experiment)
         val destinationZone = ProximityZoneBuilder()
                 .forTag("corridor")
                 .inCustomRange(0.9)
@@ -233,8 +230,6 @@ class MainNavigationActivity: AppCompatActivity(){
 
                         Toast.makeText(this, "Entered destination $name, description: $description", Toast.LENGTH_SHORT).show()
                     } else {
-//                        TTSOutput = "Please stop. You are now at $name... $description... "
-//                        TTSCtrl.speakOut(TTSOutput)
                         Toast.makeText(this, "Entered beacon $name, description: $description", Toast.LENGTH_SHORT).show()
                         Log.d(debugTAG, "Entered beacon $name, description: $description")
 
@@ -287,53 +282,6 @@ class MainNavigationActivity: AppCompatActivity(){
                 .build()
 
         proxObsHandler = proxObserver.startObserving(destinationZone)
-
-//        val cdt = object : CountDownTimer(30 * 1000, 1000) {
-//            override fun onTick(millisUntilFinished: Long) {
-//                Log.i(debugTAG, "Seconds remaining: " + millisUntilFinished / 1000);
-//            }
-//            override fun onFinish() {
-//                val TTSUPL = object: UtteranceProgressListener() {
-//                    override fun onDone(utteranceId: String?) {
-//                        if (inBeacon) {
-//                            handler.post(threadForBeaconNav)
-//                        }
-//                    }
-//                    override fun onError(utteranceId: String?) {
-//                    }
-//                    override fun onStart(utteranceId: String?) {
-//                    }
-//                }
-//                TTSCtrl.talk.setOnUtteranceProgressListener(TTSUPL)
-//
-//                handler.removeCallbacksAndMessages(null)
-//                if (inBeacon) {
-//                    TTSCtrl.speakOut("You have stopped moving for 30 seconds . . . Please double tap if you wish to change destinations . . .Otherwise, you are currently enroute to your destination!")
-//                }
-//            }
-//        }
-//
-//        broadcastReceiver = object : BroadcastReceiver() {
-//            override fun onReceive(context: Context, intent: Intent) {
-//                if (intent.action == "iGuide_service") {
-//                    val type = intent.getIntExtra("type", -1)
-//                    //val confidence = intent.getIntExtra("confidence", 0)
-//
-//                    Log.d(debugTAG, "SERVICE TYPE: $type")
-//
-//                    if (type == DetectedActivity.STILL) {
-//                        cdt.start()
-//                        Log.d(debugTAG, "Still")
-//                    }
-//                    else {
-//                        cdt.cancel()
-//                        Log.d(debugTAG, "NOT STILL")
-//                    }
-//                }
-//            }
-//        }
-//
-//        startTracking()
     }
 
     override fun onTouchEvent(event: MotionEvent?): Boolean {
@@ -349,6 +297,7 @@ class MainNavigationActivity: AppCompatActivity(){
         super.onDestroy()
     }
 
+    //Initialize necessary listeners such as compass, STT, gestures
     private fun initializeListeners() {
         var azimuthCount = 0
         var tempAzimuth: Float = 0.toFloat()
@@ -414,26 +363,4 @@ class MainNavigationActivity: AppCompatActivity(){
 
         alphaAnim.setAnimationListener(al)
     }
-
-//    override fun onResume() {
-//        super.onResume()
-//        LocalBroadcastManager.getInstance(this).registerReceiver(broadcastReceiver, IntentFilter("iGuide_service"))
-//    }
-//
-//    override fun onPause() {
-//        super.onPause()
-//
-//        LocalBroadcastManager.getInstance(this).unregisterReceiver(broadcastReceiver)
-//    }
-//
-//    private fun startTracking() {
-//        Log.d(debugTAG, "Tracking started")
-//        val intent1 = Intent(this, BGMvmtDetectionService::class.java)
-//        startService(intent1)
-//    }
-//
-//    private fun stopTracking() {
-//        val intent = Intent(this, BGMvmtDetectionService::class.java)
-//        stopService(intent)
-//    }
 }

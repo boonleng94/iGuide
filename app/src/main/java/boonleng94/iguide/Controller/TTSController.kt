@@ -1,4 +1,4 @@
-package boonleng94.iguide
+package boonleng94.iguide.Controller
 
 import android.speech.tts.TextToSpeech
 import android.content.Context
@@ -6,6 +6,7 @@ import android.util.Log
 
 import java.util.Locale
 
+//Controller class for the TTS
 class TTSController {
     private val debugTAG = "TTSController"
 

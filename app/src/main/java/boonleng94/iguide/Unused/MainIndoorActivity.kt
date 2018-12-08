@@ -12,7 +12,7 @@
 //import android.util.Log
 //import boonleng94.iguide.MainApp
 //import boonleng94.iguide.R
-//import boonleng94.iguide.TTSController
+//import boonleng94.iguide.Controller.TTSController
 //
 //import com.estimote.indoorsdk.IndoorLocationManagerBuilder
 //import com.estimote.indoorsdk_module.algorithm.OnPositionUpdateListener

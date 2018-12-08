@@ -1,7 +1,6 @@
-package boonleng94.iguide
+package boonleng94.iguide.Controller
 
-import android.util.Log
-
+//Class to filter the RSSI values and do data fitting
 class RSSIFilter {
     private fun getMean(values: ArrayList<Int>): Double {
         var sum = 0
@@ -12,6 +11,7 @@ class RSSIFilter {
         return (sum / values.size).toDouble()
     }
 
+    //Returns the variance of the list of RSSI values
     private fun getVariance(values: ArrayList<Int>): Double {
         val mean = getMean(values)
         var temp = 0
@@ -23,10 +23,12 @@ class RSSIFilter {
         return (temp / (values.size - 1)).toDouble()
     }
 
+    //Returns the standard deviation of the list of RSSI values
     private fun getStdDev(values: ArrayList<Int>): Double {
         return Math.sqrt(getVariance(values))
     }
 
+    //Returns the list of RSSI values with outliers removed
     fun eliminateOutliers(values: ArrayList<Int>, scaleOfElimination: Float): ArrayList<Int> {
         val mean = getMean(values)
         val stdDev = getStdDev(values)
@@ -50,6 +52,7 @@ class RSSIFilter {
         } else eliminateOutliers(newList, scaleOfElimination)
     }
 
+    //Returns the mode of the list of RSSI values
     fun getMode(values: ArrayList<Int>): Int {
         var maxValue = values[0]
         var maxCount = 0

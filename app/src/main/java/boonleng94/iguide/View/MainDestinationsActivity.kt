@@ -1,4 +1,4 @@
-package boonleng94.iguide
+package boonleng94.iguide.View
 
 import android.app.NotificationManager
 import android.app.NotificationChannel
@@ -18,15 +18,21 @@ import android.view.GestureDetector
 import android.view.Gravity
 import android.view.MotionEvent
 import android.widget.TextView
+import boonleng94.iguide.*
+import boonleng94.iguide.Controller.*
+import boonleng94.iguide.Model.*
+import boonleng94.iguide.Model.Dictionary
+import boonleng94.iguide.Model.Map
 
 import com.estimote.proximity_sdk.api.ProximityObserver
 import com.estimote.proximity_sdk.api.ProximityObserverBuilder
 import com.estimote.proximity_sdk.api.ProximityZoneBuilder
+
 import kotlinx.android.synthetic.main.activity_dest.*
-import kotlinx.android.synthetic.main.activity_map.*
 
 import java.util.*
 
+//Activity class for the UI for reading destinations available
 class MainDestinationsActivity : AppCompatActivity() {
     private val debugTAG = "MainDestinationsActivity"
 
@@ -40,19 +46,14 @@ class MainDestinationsActivity : AppCompatActivity() {
     private lateinit var mSpeechRecognizerIntent: Intent
     private lateinit var mSpeechRecognitionListener: SpeechRecognitionListener
     private lateinit var detectedBeaconsList: ArrayList<Beacon>
-    
+    private lateinit var map: Map
+
     private var displayList = ArrayList<String>()
-
     private var destOutputString = StringBuilder("Where would you like to go? ")
-
     private var TTSOutput = "Eye Guide"
-
     private var doneSpeech = false
-
     private var listOfMaps = ArrayList<Map>()
     private var mapCreated = false
-
-    private lateinit var map: Map
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
@@ -67,7 +68,6 @@ class MainDestinationsActivity : AppCompatActivity() {
         listOfMaps.add(generateN42cMap())
 
         initializeListeners()
-
         createNotificationChannel()
 
         val notif = NotificationCompat.Builder(this, (application as MainApp).channelID)
@@ -88,7 +88,7 @@ class MainDestinationsActivity : AppCompatActivity() {
                 .build()
 
         //Build A ProximityZone to find Beacons with tag 'corridor' within 20m distance
-        //2. Get beacons in the corridor, find out what map user is in, get the coordinate of the beacons from the map and put into detectedBeaconsList of beacons that match the deviceID
+        //Get beacons in the corridor, find out what map user is in, get the coordinate of the beacons from the map and put into detectedBeaconsList of beacons that match the deviceID
         val corridorZone = ProximityZoneBuilder()
                 .forTag("corridor")
                 .inCustomRange(20.0)
@@ -162,6 +162,7 @@ class MainDestinationsActivity : AppCompatActivity() {
         super.onDestroy()
     }
 
+    //Read out destinations using TTS
     private fun readDestinations() {
         var index = 1
 
@@ -195,6 +196,7 @@ class MainDestinationsActivity : AppCompatActivity() {
         }
     }
 
+    //Start navigation, initialize Navigator, pass data to MainNavigationActivity
     private fun startNavigation(destBeaconName: String) {
         Handler().postDelayed( {
             compass.stop()
@@ -235,6 +237,7 @@ class MainDestinationsActivity : AppCompatActivity() {
         }, 5000)
     }
 
+    //Initialize necessary listeners such as compass, STT, gestures
     private fun initializeListeners() {
         var azimuthCount = 0
         var tempAzimuth: Float = 0.toFloat()
@@ -326,6 +329,7 @@ class MainDestinationsActivity : AppCompatActivity() {
         shakeDetector.start()
     }
 
+    //Inner class to hold the STT listener
     private inner class SpeechRecognitionListener : RecognitionListener {
         val intMap = Dictionary().intMap
 
@@ -444,6 +448,7 @@ class MainDestinationsActivity : AppCompatActivity() {
         override fun onRmsChanged(rmsdB: Float) {}
     }
 
+    //Create notification channel
     private fun createNotificationChannel() {
         if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
             val name = getString(R.string.app_name)
@@ -456,56 +461,57 @@ class MainDestinationsActivity : AppCompatActivity() {
         }
     }
 
+    //To hold a N42cMap
     fun generateN42cMap(): Map {
         var beaconList = ArrayList<Beacon>()
 
         val cf1 = Beacon("08521b848f630526cdf23fe40044913d")
         cf1.name = "Entrance to SCSE Level 2"
-        cf1.coordinate = Coordinate(40.0,0.0)
+        cf1.coordinate = Coordinate(40.0, 0.0)
 
         val cf2 = Beacon("bf96d1619008c20716ddafbf69747424")
         cf2.name = "N4-02c Placeholder"
-        cf2.coordinate = Coordinate(40.0,2.0)
+        cf2.coordinate = Coordinate(40.0, 2.0)
 
         val cf3 = Beacon("d137249e154e746b32fe0f25c89cfa05")
         cf3.name = "N4-02c Placeholder"
-        cf3.coordinate = Coordinate(0.0,2.0)
+        cf3.coordinate = Coordinate(0.0, 2.0)
 
         val cf4 = Beacon("21406f9c93238e88db98ec7fca351d20")
         cf4.name = "Entrance of Block B"
-        cf4.coordinate = Coordinate(0.0,0.0)
+        cf4.coordinate = Coordinate(0.0, 0.0)
 
         val lt1 = Beacon("c99857c5c5a01cdc348e02bb878c3b1d")
         lt1.name = "N4-02c-88"
-        lt1.coordinate = Coordinate(35.0,2.0)
+        lt1.coordinate = Coordinate(35.0, 2.0)
 
         val lt2 = Beacon("c449d2e64acc028dc214a74d53087827")
         lt2.name = "N4-02c-86"
-        lt2.coordinate = Coordinate(31.0,2.0)
+        lt2.coordinate = Coordinate(31.0, 2.0)
 
         val lt3 = Beacon("9176b3b9b95e4e6d69212c56fa21fe20")
         lt3.name = "N4-02c-84"
-        lt3.coordinate = Coordinate(27.0,2.0)
+        lt3.coordinate = Coordinate(27.0, 2.0)
 
         val lt4 = Beacon("881c05b08a25c096cbd4deaedfc6c70f")
         lt4.name = "N4-02c-82"
-        lt4.coordinate = Coordinate(23.0,2.0)
+        lt4.coordinate = Coordinate(23.0, 2.0)
 
         val br1 = Beacon("7d682761535f52f943994e8c8ef57613")
         br1.name = "N4-02c-80"
-        br1.coordinate = Coordinate(19.0,2.0)
+        br1.coordinate = Coordinate(19.0, 2.0)
 
         val br2 = Beacon("99d3734cf5f35999cddc66e499b0f51e")
         br2.name = "N4-02c-78"
-        br2.coordinate = Coordinate(15.0,2.0)
+        br2.coordinate = Coordinate(15.0, 2.0)
 
         val br3 = Beacon("4698eda62f2def1aef341553fa41b51c")
         br3.name = "N4-02c-76"
-        br3.coordinate = Coordinate(11.0,2.0)
+        br3.coordinate = Coordinate(11.0, 2.0)
 
         val br4 = Beacon("e65c0c815eb675f11cad88bef67e1335")
         br4.name = "N4-02c-74"
-        br4.coordinate = Coordinate(7.0,2.0)
+        br4.coordinate = Coordinate(7.0, 2.0)
 
         beaconList.add(cf1)
         beaconList.add(cf2)
@@ -525,6 +531,7 @@ class MainDestinationsActivity : AppCompatActivity() {
         return map
     }
 
+    //Display list of destinations
     private fun generateDisplayList(map: Map) {
         for (i in map.beaconList) {
             if (i.name != "N4-02c Placeholder") {

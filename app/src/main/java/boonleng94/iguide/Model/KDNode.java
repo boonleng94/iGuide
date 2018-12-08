@@ -1,7 +1,7 @@
-package boonleng94.iguide;
+package boonleng94.iguide.Model;
 
-//This is a java program to find nearest neighbor using KD Tree implementation
-
+//The KDTree implementation is not actually needed since Navigator does the same job of returning nearest neighbour
+//KD Tree Node to find nearest neighbour
 public class KDNode
 {
     public int axis;
@@ -45,7 +45,6 @@ public class KDNode
 
     public KDNode Insert(double[] p)
     {
-        //x = new double[2];
         KDNode parent = FindParent(p);
         if (equal(p, parent.x, 2) == true)
             return null;

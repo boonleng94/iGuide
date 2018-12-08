@@ -1,7 +1,9 @@
-package boonleng94.iguide
+package boonleng94.iguide.Model
 
+import boonleng94.iguide.Controller.Coordinate
 import java.io.Serializable
 
+//Data class to store beacon objects with default variables
 data class Beacon(val deviceID: String): Serializable, Cloneable {
     var measuredPower = -1
     var distance = -1.0
@@ -17,7 +19,7 @@ data class Beacon(val deviceID: String): Serializable, Cloneable {
             return false
     }
 
-    public override fun clone(): Beacon{
+    public override fun clone(): Beacon {
         try {
             super.clone()
         } catch (e: CloneNotSupportedException ) {
@@ -28,4 +30,5 @@ data class Beacon(val deviceID: String): Serializable, Cloneable {
     }
 }
 
+//Data class to store the virtual map
 data class Map(val mapID: String, val beaconList: ArrayList<Beacon>)

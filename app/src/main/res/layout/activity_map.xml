@@ -37,7 +37,7 @@
 
     <view
         android:id="@+id/map"
-        class="boonleng94.iguide.MapView"
+        class="boonleng94.iguide.View.MapView"
         android:layout_width="wrap_content"
         android:layout_height="wrap_content"
         android:alignmentMode="alignMargins"

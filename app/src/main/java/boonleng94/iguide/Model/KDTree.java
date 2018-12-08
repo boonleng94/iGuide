@@ -1,27 +1,19 @@
-package boonleng94.iguide;
+package boonleng94.iguide.Model;
 
-import boonleng94.iguide.KDNode;
-
+//The KDTree implementation is not actually needed since Navigator does the same job of returning nearest neighbour
+//KD Tree to find nearest neighbour
 public class KDTree {
     KDNode Root;
-
-    int TimeStart, TimeFinish;
-    int CounterFreq;
-
     double d_min;
-    KDNode nearest_neighbour;
-
-    int KD_id;
-
-    int nList;
-
-    KDNode CheckedNodes[];
-    int checked_nodes;
-    KDNode List[];
-
     double x_min[], x_max[];
-    boolean max_boundary[], min_boundary[];
+    KDNode nearest_neighbour;
+    KDNode CheckedNodes[];
+    KDNode List[];
+    int KD_id;
+    int nList;
+    int checked_nodes;
     int n_boundary;
+    boolean max_boundary[], min_boundary[];
 
     public KDTree(int i) {
         Root = null;
@@ -37,7 +29,7 @@ public class KDTree {
 
     public boolean add(double[] x) {
         if (nList >= 2000000 - 1)
-            return false; // can't add more points
+            return false;
 
         if (Root == null) {
             Root = new KDNode(x, 0);
@@ -50,26 +42,22 @@ public class KDTree {
                 List[nList++] = pNode;
             }
         }
-
         return true;
     }
 
     public KDNode find_nearest(double[] x) {
         if (Root == null)
             return null;
-
         checked_nodes = 0;
         KDNode parent = Root.FindParent(x);
         nearest_neighbour = parent;
         d_min = Root.distance2(x, parent.x, 2);
-
 
         if (parent.equal(x, parent.x, 2) == true)
             return nearest_neighbour;
 
         search_parent(parent, x);
         uncheck();
-
         return nearest_neighbour;
     }
 
@@ -126,7 +114,6 @@ public class KDTree {
             d += dx;
             if (d > d_min)
                 return;
-
         }
 
         if (d < d_min) {
@@ -148,7 +135,6 @@ public class KDTree {
             search_root = parent;
             parent = parent.Parent;
         }
-
         return search_root;
     }
 

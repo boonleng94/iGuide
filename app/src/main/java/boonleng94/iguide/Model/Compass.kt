@@ -1,4 +1,4 @@
-package boonleng94.iguide
+package boonleng94.iguide.Model
 
 import android.content.Context
 import android.hardware.Sensor
@@ -6,10 +6,12 @@ import android.hardware.SensorEvent
 import android.hardware.SensorEventListener
 import android.hardware.SensorManager
 
+//CompassListener interface
 interface CompassListener {
     fun onAzimuthChange(azimuth: Float)
 }
 
+//Compass object for getting azimuth values for getting user orientation
 class Compass(context: Context): SensorEventListener {
     lateinit var compassListener: CompassListener
 

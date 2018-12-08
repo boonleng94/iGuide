@@ -1,12 +1,12 @@
-package boonleng94.iguide
+package boonleng94.iguide.View
 
 import android.os.Bundle
 
 import android.support.v7.app.AppCompatActivity
-import android.view.View
-import android.widget.TextView
-import java.util.*
+import boonleng94.iguide.MainApp
+import boonleng94.iguide.R
 
+//Activity class for the UI for the map of the actual path taken
 class MainMapActivity : AppCompatActivity(){
     private lateinit var map: MapView
 
@@ -193,8 +193,6 @@ class MainMapActivity : AppCompatActivity(){
 //            i.x = tempY
 //            i.y = tempX/2
 //        }
-
-
 
         val test = beaconList.iterator()
         while (test.hasNext()) {

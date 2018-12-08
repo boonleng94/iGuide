@@ -1,16 +1,24 @@
-package boonleng94.iguide
+package boonleng94.iguide.Controller
 
 import android.util.Log
+import boonleng94.iguide.Model.Beacon
+import boonleng94.iguide.Model.Direction
+import boonleng94.iguide.Model.KDTree
+import boonleng94.iguide.Model.Orientation
+
 import com.lemmingapex.trilateration.LinearLeastSquaresSolver
 import com.lemmingapex.trilateration.NonLinearLeastSquaresSolver
 import com.lemmingapex.trilateration.TrilaterationFunction
 import org.apache.commons.math3.fitting.leastsquares.LevenbergMarquardtOptimizer
+
 import java.io.Serializable
 import java.util.*
+
 import kotlin.math.roundToInt
 
-data class Coordinate(var x: Double, var y: Double) : Serializable //Every 0.5m = 1 Unit
-//1m = 2 coordinate units = 3 steps
+//Data class to store Coordinates
+data class Coordinate(var x: Double, var y: Double) : Serializable
+//2 units = ~1m = 3 steps
 
 class Navigator {
     private lateinit var currentPos: Coordinate
@@ -66,7 +74,6 @@ class Navigator {
                 maxY = i.coordinate.y
             }
         }
-        //Log.d(debugTAG, "MaxX = $maxX, MaxY = $maxY")
 
         maxX+=1
         maxY+=1
@@ -321,8 +328,6 @@ class Navigator {
                 m = Direction.FORWARD
             }
 
-            //Log.d(debugTAG, "User move " + m.toString() + " from (" + userPos.x + ", " + userPos.y + ") to (" + temp.x + ", " + temp.y + ")")
-
             for (i in dbList) {
                 if (i.coordinate == Coordinate(temp.x, temp.y)) {
                     queue.add(i)
@@ -334,7 +339,9 @@ class Navigator {
         return queue
     }
 
-    private fun updatePosAndOrientation(direction: Direction, numberOfGrid: Int) {
+    /**
+     * Update the position and orientation of the user
+     */    private fun updatePosAndOrientation(direction: Direction, numberOfGrid: Int) {
         val newOrdinal = (userOrientation.ordinal + direction.ordinal) % 4
         userOrientation = Orientation.values()[newOrdinal]
 
@@ -346,6 +353,9 @@ class Navigator {
         }
     }
 
+    /**
+     * Returns the next nearest beacon using the KDTree implementation (not actually needed)
+     */
     fun findNextNearest(source: Coordinate, destList: ArrayList<Beacon>): Beacon {
         //Not useful beacons
         val beaconList = ArrayList<Beacon>()
@@ -384,48 +394,10 @@ class Navigator {
         return Beacon("Beacon")
     }
 
-    fun findShortestPath(source: Coordinate, dest: Coordinate, destList: ArrayList<Beacon>, queue: Queue<Beacon>): Queue<Beacon> {
-        //Not useful beacons
-        destList.removeIf {
-            item ->
-            item.coordinate == Coordinate(-1.0, -1.0)
-        }
 
-        val tree = KDTree(destList.size)
-
-        for (i in destList) {
-            val point = DoubleArray(2)
-            point[0] = i.coordinate.x
-            point[1] = i.coordinate.y
-
-            tree.add(point)
-        }
-
-        var start = DoubleArray(2)
-        start[0] = source.x
-        start[1] = source.y
-
-        var nextPoint = tree.find_nearest(start)
-        var nextCoord = Coordinate(nextPoint.x[0], nextPoint.x[1])
-
-        val iter = destList.iterator()
-
-        while (iter.hasNext()) {
-            val i = iter.next()
-
-            if (i.coordinate == nextCoord) {
-                queue.add(i)
-                iter.remove()
-            }
-        }
-
-        if (nextCoord != dest) {
-            findShortestPath(nextCoord, dest, destList, queue)
-        }
-
-        return queue
-    }
-
+    /**
+     * Returns the user's position
+     */
     fun findUserPos(destList: ArrayList<Beacon>): Coordinate {
         //Not useful beacons
         val beaconList = ArrayList<Beacon>()
@@ -512,6 +484,9 @@ class Navigator {
         return Coordinate(roundToHalf(res2[0] / 2), roundToHalf(res2[1] / 2))
     }
 
+    /**
+     * Returns the approximated distance using the RSSI values
+     */
     fun computeDistance(rssi: Int, measuredPower: Int): Double {
         if (rssi == 0) {
             return -1.0
@@ -527,6 +502,9 @@ class Navigator {
         }
     }
 
+    /**
+     * Returns the value rounded to half
+     */
     private fun roundToHalf(d: Double): Double {
         return Math.round(d * 2) / 2.0
     }
